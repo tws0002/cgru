@@ -6,14 +6,14 @@ import os
 import cgruconfig
 import cgruutils
 
-from cgrupyqt import QtCore, QtGui
+from cgrupyqt import QtCore, QtGui, QtWidgets
 
 import cgrupyqt
 
 
-class Window(QtGui.QTextEdit):
+class Window(QtWidgets.QTextEdit):
 	def __init__(self, parent=None):
-		QtGui.QTextEdit.__init__(self, parent)
+		QtWidgets.QTextEdit.__init__(self, parent)
 
 		self.setWindowTitle(
 			'Configuration: %s version %s' % (

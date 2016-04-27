@@ -9,7 +9,7 @@ import af
 Application = None
 Tray = None
 
-from cgrupyqt import QtCore, QtGui
+from cgrupyqt import QtCore, QtGui, QtWidgets
 
 
 def getVar(var, title='Set Variable', label='Enter new value:'):
@@ -17,7 +17,7 @@ def getVar(var, title='Set Variable', label='Enter new value:'):
 	if var in cgruconfig.VARS:
 		oldvalue = cgruconfig.VARS[var]
 
-	newvalue, ok = QtGui.QInputDialog.getText(
+	newvalue, ok = QtWidgets.QInputDialog.getText(
 		None, title, label, text=oldvalue
 	)
 

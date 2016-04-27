@@ -8,7 +8,7 @@ import cgruconfig
 import cgruutils
 
 import cgrupyqt
-from cgrupyqt import QtCore, QtGui
+from cgrupyqt import QtCore, QtGui, QtWidgets
 
 # Command arguments:
 
@@ -105,9 +105,9 @@ for afile in CodecFiles:
 	CodecNames.append(name)
 
 
-class Dialog(QtGui.QWidget):
+class Dialog(QtWidgets.QWidget):
 	def __init__(self):
-		QtGui.QWidget.__init__(self)
+		QtWidgets.QWidget.__init__(self)
 		self.constructed = False
 
 		self.evaluated = False
@@ -115,54 +115,48 @@ class Dialog(QtGui.QWidget):
 
 		self.setWindowTitle(
 			'Scan Scan - CGRU ' + cgruconfig.VARS['CGRU_VERSION'])
-		self.mainLayout = QtGui.QVBoxLayout(self)
+		self.mainLayout = QtWidgets.QVBoxLayout(self)
 
-		self.tabwidget = QtGui.QTabWidget(self)
-		self.generalwidget = QtGui.QWidget(self)
+		self.tabwidget = QtWidgets.QTabWidget(self)
+		self.generalwidget = QtWidgets.QWidget(self)
 		self.tabwidget.addTab(self.generalwidget, 'General')
-		self.generallayout = QtGui.QVBoxLayout(self.generalwidget)
-		self.parameterswidget = QtGui.QWidget(self)
+		self.generallayout = QtWidgets.QVBoxLayout(self.generalwidget)
+		self.parameterswidget = QtWidgets.QWidget(self)
 		self.tabwidget.addTab(self.parameterswidget, 'Parameters')
-		self.parameterslayout = QtGui.QVBoxLayout(self.parameterswidget)
+		self.parameterslayout = QtWidgets.QVBoxLayout(self.parameterswidget)
 		self.mainLayout.addWidget(self.tabwidget)
 
 		# General:
-		self.lFormat = QtGui.QHBoxLayout()
-		self.tFormat = QtGui.QLabel('Format:', self)
+		self.lFormat = QtWidgets.QHBoxLayout()
+		self.tFormat = QtWidgets.QLabel('Format:', self)
 		self.tFormat.setToolTip('Movie resolution.\n'
 								'Format presets located in\n' + FormatsPath)
-		self.cbFormat = QtGui.QComboBox(self)
+		self.cbFormat = QtWidgets.QComboBox(self)
 		i = 0
 		for format in FormatValues:
 			self.cbFormat.addItem(FormatNames[i], format)
 			if format == Options.format:
 				self.cbFormat.setCurrentIndex(i)
 			i += 1
-		QtCore.QObject.connect(self.cbFormat,
-							   QtCore.SIGNAL('currentIndexChanged(int)'),
-							   self.evaluate)
-		self.tCodec = QtGui.QLabel('Codec:', self)
+		self.cbFormat.currentIndexChanged.connect(self.evaluate)
+		self.tCodec = QtWidgets.QLabel('Codec:', self)
 		self.tCodec.setToolTip('Codec presets located in\n' + CodecsPath)
-		self.cbCodec = QtGui.QComboBox(self)
+		self.cbCodec = QtWidgets.QComboBox(self)
 		i = 0
 		for name in CodecNames:
 			self.cbCodec.addItem(name, CodecFiles[i])
 			if os.path.basename(CodecFiles[i]) == Options.codec:
 				self.cbCodec.setCurrentIndex(i)
 			i += 1
-		QtCore.QObject.connect(self.cbCodec,
-							   QtCore.SIGNAL('currentIndexChanged(int)'),
-							   self.evaluate)
-		self.tFPS = QtGui.QLabel('FPS:', self)
+		self.cbCodec.currentIndexChanged.connect(self.evaluate)
+		self.tFPS = QtWidgets.QLabel('FPS:', self)
 		self.tFPS.setToolTip('Frame rate.')
-		self.cbFPS = QtGui.QComboBox(self)
+		self.cbFPS = QtWidgets.QComboBox(self)
 		self.cbFPS.addItem('24')
 		self.cbFPS.addItem('25')
 		self.cbFPS.addItem('30')
 		self.cbFPS.setCurrentIndex(0)
-		QtCore.QObject.connect(self.cbFPS,
-							   QtCore.SIGNAL('currentIndexChanged(int)'),
-							   self.evaluate)
+		self.cbFPS.currentIndexChanged.connect(self.evaluate)
 		self.lFormat.addWidget(self.tFormat)
 		self.lFormat.addWidget(self.cbFormat)
 		self.lFormat.addWidget(self.tFPS)
@@ -171,208 +165,169 @@ class Dialog(QtGui.QWidget):
 		self.lFormat.addWidget(self.cbCodec)
 		self.generallayout.addLayout(self.lFormat)
 
-		self.lInput = QtGui.QHBoxLayout()
-		self.tInput = QtGui.QLabel('Scan Folder', self)
+		self.lInput = QtWidgets.QHBoxLayout()
+		self.tInput = QtWidgets.QLabel('Scan Folder', self)
 		self.lInput.addWidget(self.tInput)
-		self.editInput = QtGui.QLineEdit(InputFolder, self)
-		QtCore.QObject.connect(self.editInput,
-							   QtCore.SIGNAL('textEdited(QString)'),
-							   self.evaluate)
+		self.editInput = QtWidgets.QLineEdit(InputFolder, self)
+		self.editInput.textEdited.connect(self.evaluate)
 		self.lInput.addWidget(self.editInput)
-		self.btnInputBrowse = QtGui.QPushButton('Browse', self)
-		QtCore.QObject.connect(self.btnInputBrowse,
-							   QtCore.SIGNAL('pressed()'),
-							   self.inputBrowse)
+		self.btnInputBrowse = QtWidgets.QPushButton('Browse', self)
+		self.btnInputBrowse.pressed.connect(self.inputBrowse)
 		self.lInput.addWidget(self.btnInputBrowse)
 		self.generallayout.addLayout(self.lInput)
 
-		self.lExtensions = QtGui.QHBoxLayout()
-		self.tExtensions = QtGui.QLabel('Search extensions:', self)
+		self.lExtensions = QtWidgets.QHBoxLayout()
+		self.tExtensions = QtWidgets.QLabel('Search extensions:', self)
 		tooltip = 'Comma separated list.\n' \
 				  'Leave empty to find all known:\n'
 		for ext in Extensions:
 			tooltip += ext + ' '
 		self.tExtensions.setToolTip(tooltip)
 		self.lExtensions.addWidget(self.tExtensions)
-		self.editExtensions = QtGui.QLineEdit(Options.extensions, self)
-		QtCore.QObject.connect(self.editExtensions,
-							   QtCore.SIGNAL('editingFinished()'),
-							   self.evaluate)
+		self.editExtensions = QtWidgets.QLineEdit(Options.extensions, self)
+		self.editExtensions.editingFinished.connect(self.evaluate)
 		self.lExtensions.addWidget(self.editExtensions)
 		self.generallayout.addLayout(self.lExtensions)
 
-		self.lInclude = QtGui.QHBoxLayout()
-		self.tInclude = QtGui.QLabel('Include pattern:', self)
+		self.lInclude = QtWidgets.QHBoxLayout()
+		self.tInclude = QtWidgets.QLabel('Include pattern:', self)
 		self.lInclude.addWidget(self.tInclude)
-		self.editInclude = QtGui.QLineEdit(Options.include, self)
-		QtCore.QObject.connect(self.editInclude,
-							   QtCore.SIGNAL('textEdited(QString)'),
-							   self.evaluate)
+		self.editInclude = QtWidgets.QLineEdit(Options.include, self)
+		self.editInclude.textEdited.connect(self.evaluate)
 		self.lInclude.addWidget(self.editInclude)
 		self.generallayout.addLayout(self.lInclude)
 
-		self.lExclude = QtGui.QHBoxLayout()
-		self.tExclude = QtGui.QLabel('Exclude pattern:', self)
+		self.lExclude = QtWidgets.QHBoxLayout()
+		self.tExclude = QtWidgets.QLabel('Exclude pattern:', self)
 		self.lExclude.addWidget(self.tExclude)
-		self.editExclude = QtGui.QLineEdit(Options.exclude, self)
-		QtCore.QObject.connect(self.editExclude,
-							   QtCore.SIGNAL('textEdited(QString)'),
-							   self.evaluate)
+		self.editExclude = QtWidgets.QLineEdit(Options.exclude, self)
+		self.editExclude.textEdited.connect(self.evaluate)
 		self.lExclude.addWidget(self.editExclude)
 		self.generallayout.addLayout(self.lExclude)
 
-		self.lDateTime = QtGui.QHBoxLayout()
-		self.cDateTime = QtGui.QCheckBox('Skip folders ealier than:', self)
-		QtCore.QObject.connect(self.cDateTime,
-							   QtCore.SIGNAL('stateChanged(int)'),
-							   self.evaluate)
+		self.lDateTime = QtWidgets.QHBoxLayout()
+		self.cDateTime = QtWidgets.QCheckBox('Skip folders ealier than:', self)
+		self.cDateTime.stateChanged.connect(self.evaluate)
 		self.lDateTime.addWidget(self.cDateTime)
-		self.eDateTime = QtGui.QDateTimeEdit(
+		self.eDateTime = QtWidgets.QDateTimeEdit(
 			QtCore.QDateTime.currentDateTime(), self)
 		self.eDateTime.setCalendarPopup(True)
 		self.eDateTime.setDisplayFormat(DateTimeFormat)
-		QtCore.QObject.connect(self.cDateTime,
-							   QtCore.SIGNAL('dateTimeChanged( QDateTime)'),
-							   self.evaluate)
+		self.eDateTime.dateTimeChanged.connect(self.evaluate)
 		self.lDateTime.addWidget(self.eDateTime)
 		self.generallayout.addLayout(self.lDateTime)
 
-		self.lOutput = QtGui.QHBoxLayout()
-		self.tOutput = QtGui.QLabel('Output Folder:', self)
+		self.lOutput = QtWidgets.QHBoxLayout()
+		self.tOutput = QtWidgets.QLabel('Output Folder:', self)
 		self.lOutput.addWidget(self.tOutput)
-		self.editOutput = QtGui.QLineEdit(OutputFolder, self)
-		QtCore.QObject.connect(self.editOutput,
-							   QtCore.SIGNAL('editingFinished()'),
-							   self.evaluate)
+		self.editOutput = QtWidgets.QLineEdit(OutputFolder, self)
+		self.editOutput.editingFinished.connect(self.evaluate)
 		self.lOutput.addWidget(self.editOutput)
-		self.btnOutputBrowse = QtGui.QPushButton('Browse', self)
-		QtCore.QObject.connect(self.btnOutputBrowse,
-							   QtCore.SIGNAL('pressed()'), self.browseOutput)
+		self.btnOutputBrowse = QtWidgets.QPushButton('Browse', self)
+		self.btnOutputBrowse.pressed.connect(self.browseOutput)
 		self.lOutput.addWidget(self.btnOutputBrowse)
 		self.generallayout.addLayout(self.lOutput)
 
 
 		# Parameters:
-		self.cAbsPath = QtGui.QCheckBox(
+		self.cAbsPath = QtWidgets.QCheckBox(
 			'Prefix movies names with images absolute input files path',
 			self
 		)
 		self.cAbsPath.setChecked(Options.abspath)
-		QtCore.QObject.connect(self.cAbsPath,
-							   QtCore.SIGNAL('stateChanged(int)'),
-							   self.evaluate)
+		self.cAbsPath.stateChanged.connect(self.evaluate)
 		self.parameterslayout.addWidget(self.cAbsPath)
 
-		self.lTemplates = QtGui.QHBoxLayout()
-		self.tTemplate = QtGui.QLabel('Frame Template:', self)
+		self.lTemplates = QtWidgets.QHBoxLayout()
+		self.tTemplate = QtWidgets.QLabel('Frame Template:', self)
 		self.tTemplate.setToolTip('Frame template.\n'
 								  'Templates are located in\n' + TemplatesPath)
-		self.cbTemplate = QtGui.QComboBox(self)
+		self.cbTemplate = QtWidgets.QComboBox(self)
 		for template in Templates:
 			self.cbTemplate.addItem(template)
 		self.cbTemplate.setCurrentIndex(Template)
 		self.lTemplates.addWidget(self.tTemplate)
 		self.lTemplates.addWidget(self.cbTemplate)
-		QtCore.QObject.connect(self.cbTemplate,
-							   QtCore.SIGNAL('currentIndexChanged(int)'),
-							   self.evaluate)
+		self.cbTemplate.currentIndexChanged.connect(self.evaluate)
 		self.parameterslayout.addLayout(self.lTemplates)
 
-		self.lAspect = QtGui.QHBoxLayout()
-		self.lAspect.addWidget(QtGui.QLabel('Input Images Aspect', self))
-		self.dsbAspect = QtGui.QDoubleSpinBox(self)
+		self.lAspect = QtWidgets.QHBoxLayout()
+		self.lAspect.addWidget(QtWidgets.QLabel('Input Images Aspect', self))
+		self.dsbAspect = QtWidgets.QDoubleSpinBox(self)
 		self.dsbAspect.setRange(-1.0, 10.0)
 		self.dsbAspect.setDecimals(6)
 		self.dsbAspect.setValue(Options.aspect_in)
-		QtCore.QObject.connect(self.dsbAspect,
-							   QtCore.SIGNAL('valueChanged(double)'),
-							   self.evaluate)
+		self.dsbAspect.valueChanged.connect(self.evaluate)
 		self.lAspect.addWidget(self.dsbAspect)
-		self.lAspect.addWidget(QtGui.QLabel(' (-1 = no changes) ', self))
+		self.lAspect.addWidget(QtWidgets.QLabel(' (-1 = no changes) ', self))
 		self.parameterslayout.addLayout(self.lAspect)
 
-		self.lAutoAspect = QtGui.QHBoxLayout()
-		self.tAutoAspect = QtGui.QLabel('Auto Input Aspect', self)
+		self.lAutoAspect = QtWidgets.QHBoxLayout()
+		self.tAutoAspect = QtWidgets.QLabel('Auto Input Aspect', self)
 		self.tAutoAspect.setToolTip(
 			'Images with width/height ratio > this value will be '
 			'treated as 2:1.'
 		)
 		self.lAutoAspect.addWidget(self.tAutoAspect)
-		self.dsbAutoAspect = QtGui.QDoubleSpinBox(self)
+		self.dsbAutoAspect = QtWidgets.QDoubleSpinBox(self)
 		self.dsbAutoAspect.setRange(-1.0, 10.0)
 		self.dsbAutoAspect.setDecimals(3)
 		self.dsbAutoAspect.setValue(Options.aspect_auto)
-		QtCore.QObject.connect(self.dsbAutoAspect,
-							   QtCore.SIGNAL('valueChanged(double)'),
-							   self.evaluate)
+		self.dsbAutoAspect.valueChanged.connect(self.evaluate)
 		self.lAutoAspect.addWidget(self.dsbAutoAspect)
-		self.lAutoAspect.addWidget(QtGui.QLabel(' (-1 = no changes) ', self))
+		self.lAutoAspect.addWidget(QtWidgets.QLabel(' (-1 = no changes) ', self))
 		self.parameterslayout.addLayout(self.lAutoAspect)
 
-		self.gCorrectionSettings = QtGui.QGroupBox('Image Correction')
-		self.lCorr = QtGui.QHBoxLayout()
+		self.gCorrectionSettings = QtWidgets.QGroupBox('Image Correction')
+		self.lCorr = QtWidgets.QHBoxLayout()
 		self.gCorrectionSettings.setLayout(self.lCorr)
-		self.tGamma = QtGui.QLabel('Gamma:', self)
-		self.dsbGamma = QtGui.QDoubleSpinBox(self)
+		self.tGamma = QtWidgets.QLabel('Gamma:', self)
+		self.dsbGamma = QtWidgets.QDoubleSpinBox(self)
 		self.dsbGamma.setRange(0.1, 10.0)
 		self.dsbGamma.setDecimals(1)
 		self.dsbGamma.setSingleStep(0.1)
 		self.dsbGamma.setValue(1.0)
-		QtCore.QObject.connect(self.dsbGamma,
-							   QtCore.SIGNAL('valueChanged(double)'),
-							   self.evaluate)
+		self.dsbGamma.valueChanged.connect(self.evaluate)
 		self.lCorr.addWidget(self.tGamma)
 		self.lCorr.addWidget(self.dsbGamma)
 		self.parameterslayout.addWidget(self.gCorrectionSettings)
 
 
 		# Bottom tab:
-		self.cmdField = QtGui.QTextEdit(self)
+		self.cmdField = QtWidgets.QTextEdit(self)
 		self.cmdField.setReadOnly(True)
 		self.mainLayout.addWidget(self.cmdField)
 
-		self.lProcess = QtGui.QHBoxLayout()
-		self.btnStart = QtGui.QPushButton('Start', self)
+		self.lProcess = QtWidgets.QHBoxLayout()
+		self.btnStart = QtWidgets.QPushButton('Start', self)
 		self.btnStart.setEnabled(False)
-		QtCore.QObject.connect(self.btnStart,
-							   QtCore.SIGNAL('pressed()'),
-							   self.execute)
-		self.btnStop = QtGui.QPushButton('Stop', self)
+		self.btnStart.pressed.connect(self.execute)
+		self.btnStop = QtWidgets.QPushButton('Stop', self)
 		self.btnStop.setEnabled(False)
-		QtCore.QObject.connect(self.btnStop,
-							   QtCore.SIGNAL('pressed()'),
-							   self.processStop)
-		self.btnTest = QtGui.QPushButton('Test', self)
+		self.btnStop.pressed.connect(self.processStop)
+		self.btnTest = QtWidgets.QPushButton('Test', self)
 		self.btnTest.setEnabled(False)
-		QtCore.QObject.connect(self.btnTest,
-							   QtCore.SIGNAL('pressed()'),
-							   self.executeTest)
+		self.btnTest.pressed.connect(self.executeTest)
 		self.lProcess.addWidget(self.btnTest)
 		self.lProcess.addWidget(self.btnStart)
 		self.lProcess.addWidget(self.btnStop)
 		self.mainLayout.addLayout(self.lProcess)
 
-		self.lAfanasy = QtGui.QHBoxLayout()
-		self.cAfanasy = QtGui.QCheckBox('Afanasy', self)
+		self.lAfanasy = QtWidgets.QHBoxLayout()
+		self.cAfanasy = QtWidgets.QCheckBox('Afanasy', self)
 		self.cAfanasy.setChecked(Options.afanasy != 0)
-		QtCore.QObject.connect(self.cAfanasy,
-							   QtCore.SIGNAL('stateChanged(int)'),
-							   self.afanasy)
-		self.tAfCapacity = QtGui.QLabel('Capacity:', self)
-		self.sbAfCapacity = QtGui.QSpinBox(self)
+		self.cAfanasy.stateChanged.connect(self.afanasy)
+		self.tAfCapacity = QtWidgets.QLabel('Capacity:', self)
+		self.sbAfCapacity = QtWidgets.QSpinBox(self)
 		self.sbAfCapacity.setRange(-1, 1000000)
 		self.sbAfCapacity.setValue(Options.afanasy)
-		QtCore.QObject.connect(self.sbAfCapacity,
-							   QtCore.SIGNAL('valueChanged(int)'),
-							   self.evaluate)
-		self.tAfMaxHosts = QtGui.QLabel('Maximum Hosts:', self)
-		self.sbAfMaxHosts = QtGui.QSpinBox(self)
+		self.sbAfCapacity.valueChanged.connect(self.evaluate)
+		self.tAfMaxHosts = QtWidgets.QLabel('Maximum Hosts:', self)
+		self.sbAfMaxHosts = QtWidgets.QSpinBox(self)
 		self.sbAfMaxHosts.setRange(-1, 1000000)
 		self.sbAfMaxHosts.setValue(Options.maxhosts)
-		QtCore.QObject.connect(self.sbAfMaxHosts,
-							   QtCore.SIGNAL('valueChanged(int)'),
-							   self.evaluate)
-		self.cAfPause = QtGui.QCheckBox('Pause', self)
+		self.sbAfMaxHosts.valueChanged.connect(self.evaluate)
+		self.cAfPause = QtWidgets.QCheckBox('Pause', self)
 		self.lAfanasy.addWidget(self.cAfanasy)
 		self.lAfanasy.addWidget(self.tAfCapacity)
 		self.lAfanasy.addWidget(self.sbAfCapacity)
@@ -396,7 +351,7 @@ class Dialog(QtGui.QWidget):
 		self.evaluate()
 
 	def inputBrowse(self):
-		folder = QtGui.QFileDialog.getExistingDirectory(
+		folder = QtWidgets.QFileDialog.getExistingDirectory(
 			self,
 			'Choose a folder',
 			self.editInput.text()
@@ -406,7 +361,7 @@ class Dialog(QtGui.QWidget):
 			self.evaluate()
 
 	def browseOutput(self):
-		folder = QtGui.QFileDialog.getExistingDirectory(
+		folder = QtWidgets.QFileDialog.getExistingDirectory(
 			self,
 			'Choose a folder',
 			self.editOutput.text()
@@ -513,12 +468,8 @@ class Dialog(QtGui.QWidget):
 		self.cmdField.clear()
 		self.process = QtCore.QProcess(self)
 		self.process.setProcessChannelMode(QtCore.QProcess.MergedChannels)
-		QtCore.QObject.connect(self.process,
-							   QtCore.SIGNAL('finished( int)'),
-							   self.processfinished)
-		QtCore.QObject.connect(self.process,
-							   QtCore.SIGNAL('readyRead()'),
-							   self.processoutput)
+		self.process.finished.connect(self.processfinished)
+		self.process.readyRead.connect(self.processoutput)
 		self.process.start(self.command)
 
 	def processfinished(self, exitCode):
@@ -557,7 +508,7 @@ def getComboBoxString(comboBox):
 	return comboBox.itemData(comboBox.currentIndex()).toString()
 
 
-app = QtGui.QApplication(sys.argv)
+app = QtWidgets.QApplication(sys.argv)
 app.setWindowIcon(QtGui.QIcon(cgruutils.getIconFileName(Options.wndicon)))
 dialog = Dialog()
 dialog.show()

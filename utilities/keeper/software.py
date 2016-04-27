@@ -7,7 +7,7 @@ import cgruconfig
 import cgruutils
 
 import cgrupyqt
-from cgrupyqt import QtCore, QtGui
+from cgrupyqt import QtCore, QtGui, QtWidgets
 
 Names = ['Blender','Houdini','Maya','Natron','Nuke','NukeX']
 

@@ -15,7 +15,7 @@ if sys.platform.find('win') == 0:
 	qtconf_file.write('Binaries = ' + pyqt4dir + '\n')
 	qtconf_file.close()
 
-from cgrupyqt import QtGui
+from cgrupyqt import QtWidgets
 
 import cgruconfig
 import cmd
@@ -30,7 +30,7 @@ if keeper_cmd is None:
 cgruconfig.VARS['CGRU_KEEPER_CMD'] = keeper_cmd
 
 # Create tray application with refresh:
-app = QtGui.QApplication(sys.argv)
+app = QtWidgets.QApplication(sys.argv)
 app.setQuitOnLastWindowClosed(False)
 cmd.Application = app
 cmd.Tray = Tray(app)

@@ -14,11 +14,7 @@ if 'keeper_refresh' not in cgruconfig.VARS:
 class Refresh:
 	def __init__(self, application):
 		self.timer = QtCore.QTimer(application)
-		QtCore.QObject.connect(
-			self.timer,
-			QtCore.SIGNAL('timeout()'),
-			self.refresh
-		)
+		self.timer.timeout.connect(self.refresh)
 		self.timer.setInterval(1000 * 3)
 		self.timer.start()
 		self.counter = 0

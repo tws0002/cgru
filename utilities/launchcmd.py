@@ -7,20 +7,20 @@ if len(sys.argv) <= 1:
 	print('Error: No command specified.')
 	sys.exit(1)
 
-from cgrupyqt import QtCore, QtGui
+from cgrupyqt import QtCore, QtGui, QtWidgets
 
 
-class Dialog(QtGui.QWidget):
+class Dialog(QtWidgets.QWidget):
 	def __init__(self):
-		QtGui.QWidget.__init__(self)
+		QtWidgets.QWidget.__init__(self)
 
 		self.setWindowTitle(sys.argv[0])
 
-		layout = QtGui.QVBoxLayout(self)
-		self.cmdField = QtGui.QTextEdit(self)
+		layout = QtWidgets.QVBoxLayout(self)
+		self.cmdField = QtWidgets.QTextEdit(self)
 		self.cmdField.setReadOnly(True)
 		layout.addWidget(self.cmdField)
-		self.outputField = QtGui.QTextEdit(self)
+		self.outputField = QtWidgets.QTextEdit(self)
 		self.outputField.setReadOnly(True)
 		layout.addWidget(self.outputField)
 
@@ -46,12 +46,8 @@ class Dialog(QtGui.QWidget):
 
 		self.process = QtCore.QProcess(self)
 		self.process.setProcessChannelMode(QtCore.QProcess.MergedChannels)
-		QtCore.QObject.connect(self.process,
-							   QtCore.SIGNAL('finished( int)'),
-							   self.processfinished)
-		QtCore.QObject.connect(self.process,
-							   QtCore.SIGNAL('readyRead()'),
-							   self.processoutput)
+		self.process.finished.connect(self.processfinished)
+		self.process.readyRead.connect(self.processoutput)
 		self.process.start(shell, arguments)
 
 	def closeEvent(self, event):
@@ -80,7 +76,7 @@ class Dialog(QtGui.QWidget):
 		self.outputField.moveCursor(QtGui.QTextCursor.End)
 
 
-app = QtGui.QApplication(sys.argv)
+app = QtWidgets.QApplication(sys.argv)
 dialog = Dialog()
 dialog.show()
 app.exec_()

@@ -14,11 +14,7 @@ class Server(QtNetwork.QTcpServer):
 		self.parent = application
 		self.setMaxPendingConnections(1)
 		self.port = int(cgruconfig.VARS['keeper_port'])
-		QtCore.QObject.connect(
-			self,
-			QtCore.SIGNAL('newConnection()'),
-			self.connection
-		)
+		self.newConnection.connect(self.connection)
 		if not self.listen(QtNetwork.QHostAddress(QtNetwork.QHostAddress.Any), self.port):
 			print('Can`t listen %d port.' % self.port)
 		else:
@@ -34,11 +30,7 @@ class Server(QtNetwork.QTcpServer):
 				break
 			print('Server connected...')
 			self.qsocket = qsocket
-			QtCore.QObject.connect(
-				self.qsocket,
-				QtCore.SIGNAL('readChannelFinished()'),
-				self.readCommand
-			)
+			self.qsocket.readChannelFinished.connect(self.readCommand)
 
 	def readCommand(self):
 		print('Server reading...')
