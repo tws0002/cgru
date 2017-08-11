@@ -15,7 +15,7 @@ Application = None
 Tray = None
 WndInfo = None
 
-from cgrupyqt import QtCore, QtGui
+from Qt import QtCore, QtWidgets, QtCompat
 
 
 def getVar(var, title='Set Variable', label='Enter new value:'):
@@ -23,7 +23,7 @@ def getVar(var, title='Set Variable', label='Enter new value:'):
 	if var in cgruconfig.VARS:
 		oldvalue = cgruconfig.VARS[var]
 
-	newvalue, ok = QtGui.QInputDialog.getText(
+	newvalue, ok = QtWidgets.QInputDialog.getText(
 		None, title, label, text=oldvalue
 	)
 
@@ -42,6 +42,9 @@ def showInfo():
 
 def cgruDocs():
 	cgrudocs.show()
+
+def cgruForum():
+	cgrudocs.showForum()
 
 
 def confReload():

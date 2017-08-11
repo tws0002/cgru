@@ -182,7 +182,7 @@ function d_ProcessGUI( i_wnd)
 		job.depend_mask = params.af_depend_mask;
 
 	job.folders = {};
-	job.folders.input  = c_PathPM_Client2Server( c_PathDir(params.input));
+	job.folders.input  = c_PathDir( c_PathPM_Client2Server( params.input));
 	job.folders.output = c_PathPM_Client2Server( params.output);
 
 	var block = {};
@@ -224,6 +224,9 @@ function d_MakeCmd( i_params)
 	cmd += ' -r '+params.format;
 	cmd += ' -s '+params.slate;
 	cmd += ' -t '+params.template;
+
+	if( RULES.dailies.font )
+		cmd += ' --font "' + RULES.dailies.font + '"';
 
 	if( params.container != 'DEFAULT' )
 		cmd += ' -n ' + params.container;
@@ -760,7 +763,7 @@ function d_WmCreate( i_wm)
 	if( params.text.length == 0 )
 		return;
 
-	i_wm.file = cgru_PM('/' + RULES.root + params.file, true);
+	i_wm.file = c_PathPM_Rules2Server( params.file);
 
 	var cmd = 'bin/convert';
 	cmd += ' -size "' + params.size + '"';
@@ -833,7 +836,7 @@ function d_MakeCut( i_args)
 
 	var params = {};
 	params.cut_name = i_args.cut_name;
-	params.output = i_args.output;
+	params.output = c_PathPM_Rules2Client( i_args.output);
 	params.input = RULES.assets.shot.result.path.join(',');
 	if( RULES.cut.input ) params.input = RULES.cut.input;
 
@@ -905,17 +908,20 @@ function d_CutProcessGUI( i_wnd, i_test)
 	cmd += ' -c "' + params.codec + '"';
 	cmd += ' --colorspace "' + params.colorspace + '"';
 
+	if( RULES.dailies.font )
+		cmd += ' --font "' + RULES.dailies.font + '"';
+
 	cmd += ' --afcapacity ' + parseInt( params.af_capacity);
 	cmd += ' --afmaxtasks ' + parseInt( params.af_maxtasks);
 	cmd += ' --afperhost ' + parseInt( params.af_perhost);
 	cmd += ' --afpertask ' + parseInt( params.af_pertask);
 	cmd += ' --afmaxruntime ' + parseInt( params.af_maxruntime);
 
-	cmd += ' -o "' + cgru_PM('/' + RULES.root + params.output, true) + '"';
+	cmd += ' -o "' + c_PathPM_Client2Server( params.output) + '"';
 	if( i_test ) cmd += ' -t';
 
 	for( var i = 0; i < shots.length; i++)
-		cmd += ' "' + cgru_PM('/' + RULES.root + shots[i], true) + '"'
+		cmd += ' "' + c_PathPM_Rules2Server( shots[i]) + '"'
 
 	n_Request({"send":{"cmdexec":{"cmds":[cmd]}},"func":d_CutFinished,"wnd":i_wnd});
 }

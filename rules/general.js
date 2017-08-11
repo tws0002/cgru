@@ -71,6 +71,7 @@ function g_Init_Config( i_data)
 	}
 
 	nw_Init();
+	bm_Init();
 
 	n_WalkDir({"paths":['.'],"wfunc":g_Init_Rules,"info":'walk config',"rufiles":['rules']});
 }
@@ -84,6 +85,7 @@ function g_Init_Rules( i_data)
 	RULES = RULES_TOP;
 	p_Init();
 	nw_InitConfigured();
+	bm_InitConfigured();
 
 	$('afanasy_webgui').href = 'http://'+cgru_Config.af_servername+':'+cgru_Config.af_serverport;
 	$('rules_label').textContent = RULES_TOP.company+'-RULES';
@@ -104,6 +106,7 @@ function g_Init_Rules( i_data)
 }
 
 function g_CurPath() { if( g_elCurFolder ) return g_elCurFolder.m_path; else return null;}
+function g_CurPathDummy() { if( g_elCurFolder ) return g_elCurFolder.m_fobject.dummy; else return true;}
 
 function g_OnKeyDown(e)
 {
@@ -178,6 +181,7 @@ function g_NavigatePost()
 	g_nav_clicked = false;
 
 	nw_NavigatePost();
+	bm_NavigatePost();
 	p_NavigatePost();
 
 	$('navigate_up').href = '#' + c_PathDir( g_CurPath());
@@ -462,7 +466,7 @@ function g_AppendFolder( i_elParent, i_fobject)
 	elFolder.m_elFBody = elFBody;
 	elFBody.classList.add('fbody');
 
-	if( c_AuxFolder( i_fobject.name ))
+	if( c_AuxFolder( i_fobject ))
 	{
 		i_fobject.auxiliary = true;
 		elFolder.classList.add('auxiliary');
@@ -702,8 +706,8 @@ function g_CompareFolders(a,b)
 	}
 
 	// Move auxiliary folders to bottom:
-	var a_aux = c_AuxFolder( a.name);
-	var b_aux = c_AuxFolder( b.name);
+	var a_aux = c_AuxFolder( a);
+	var b_aux = c_AuxFolder( b);
 
 	if( a_aux && ( false == b_aux )) return  1;
 	if( b_aux && ( false == a_aux )) return -1;

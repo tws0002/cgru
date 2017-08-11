@@ -514,9 +514,10 @@ function fu_PutMultiDo( i_wnd)
 fu_arch_params = {};
 fu_arch_params.dest = {'label':'Destination'};
 fu_arch_params.split = {'tooltip':'Split archive size.'};
-fu_arch_params.af_capacity = {'label':'Capacity','tooltip':'Afanasy tasks capacity.','width':'33%'};
-fu_arch_params.af_maxtasks = {'label':'Max Run Tasks','tooltip':'Maximum running tasks.','width':'33%','lwidth':'150px'};
-fu_arch_params.af_perhost = {'label':'Per Host','tooltip':'Maximum running tasks per host.','default':-1,'width':'33%'};
+fu_arch_params.af_capacity = {'label':'Capacity','tooltip':'Afanasy tasks capacity.','width':'25%'};
+fu_arch_params.af_maxtasks = {'label':'Max Run Tasks','tooltip':'Maximum running tasks.','width':'25%','lwidth':'150px'};
+fu_arch_params.af_perhost = {'label':'Max Per Host','tooltip':'Maximum running tasks per host.','default':-1,'width':'25%'};
+fu_arch_params.af_hostsmaks = {'label':'Hosts Mask','tooltip':'Hosts Mask.','width':'25%'};
 function fu_Archive( i_args)
 {
 //console.log( JSON.stringify( i_args));
@@ -601,6 +602,7 @@ function fu_ArchivateProcessGUI( i_wnd)
 	job.name += ' ' + c_PathBase( c_PathDir( paths[0])) + ' x' + paths.length;
 	job.max_running_tasks = parseInt( params.af_maxtasks);
 	job.max_running_tasks_per_host = parseInt( params.af_perhost);
+	job.hosts_mask = params.af_hostsmaks;
 
 	var block = {};
 	block.name = c_PathDir( paths[0]);
@@ -658,8 +660,9 @@ function fu_ArchivateProcessGUI( i_wnd)
 //
 fu_walk_params = {};
 fu_walk_params.path = {};
-fu_walk_params.verbose   = {"label":'Verbose Level',"default":2,"lwidth":'170px',"width":'50%'};
-fu_walk_params.upparents = {"label":'Update Parent Folders','type':"bool",'default':true,"lwidth":'200px',"width":'50%'};
+fu_walk_params.verbose   = {"label":'Verbose Level',"default":2,"lwidth":'170px',"width":'33%'};
+fu_walk_params.upparents = {"label":'Update Parent Folders','type':"bool",'default':true,"lwidth":'200px',"width":'33%'};
+fu_walk_params.mediainfo = {"label":'Get Media Info','type':"bool",'default':false,"lwidth":'180px',"width":'33%'};
 function fu_Walk( i_args)
 {
 	var wnd = new cgru_Window({"name":'walk',"title":'Send Walk Job'});
@@ -718,6 +721,7 @@ function fu_WalkProcessGUI( i_wnd)
 	cmd += ' --thumb 128';
 	cmd += ' --report 256';
 	if( params.upparents == false ) cmd += ' -n';
+	if( params.mediainfo ) cmd += ' -m';
 	cmd += ' -V ' + params.verbose;
 	cmd += ' "' + c_PathPM_Client2Server( params.path) + '"';
 	task.command = cmd;

@@ -3,7 +3,7 @@
 #include "af.h"
 #include "../include/afjob.h"
 
-#include "afnode.h"
+#include "afwork.h"
 #include "blockdata.h"
 #include "msg.h"
 #include "regexp.h"
@@ -11,7 +11,7 @@
 namespace af
 {
 /// Job class. Main structure Afanasy was written for.
-class Job : public Node
+class Job : public Work
 {
 public:
 	Job( int i_id = 0);
@@ -39,6 +39,8 @@ public:
 		FIgnoreNimby  = 1ULL << 34,
 		FIgnorePaused = 1ULL << 35
 	};
+
+	inline int64_t getSerial() const { return m_serial; }
 
 	inline int getBlocksNum()           const { return m_blocks_num;                }
 	inline int getTimeLife()            const { return m_time_life;                 }
@@ -119,8 +121,11 @@ public:
 	inline bool checkNeedOS(            const std::string & str ) const { return m_need_os.match( str);           }
 	inline bool checkNeedProperties(    const std::string & str ) const { return m_need_properties.match( str);   }
 
-	inline int getRunningTasksNumber() const /// Get job running tasks.
-		{int n=0;for(int b=0;b<m_blocks_num;b++)n+=m_blocks_data[b]->getRunningTasksNumber();return n;}
+	inline int32_t getRunningTasksNumber() const /// Get job running tasks.
+		{int32_t n=0;for(int b=0;b<m_blocks_num;b++)n+=m_blocks_data[b]->getRunningTasksNumber();return n;}
+
+	inline int64_t getRunningCapacityTotal() const /// Get job running tasks.
+		{int64_t c=0;for(int b=0;b<m_blocks_num;b++)c+=m_blocks_data[b]->getRunningCapacityTotal();return c;}
 
 //	const std::string & getTasksOutputDir() const { return m_tasks_output_dir; }
 
@@ -137,6 +142,8 @@ public:
 protected:
 	BlockData  ** m_blocks_data;    ///< Blocks pointer.
 	int32_t m_blocks_num;   ///< Number of blocks in job.
+
+	int64_t m_serial;
 
 	int32_t m_user_list_order;   ///< Job order in user jobs list.
 

@@ -9,6 +9,7 @@
 <script type="text/javascript" src="lib/js/md5.js"></script>
 <script type="text/javascript" src="rules/admin.js"></script>
 <script type="text/javascript" src="rules/asset.js"></script>
+<script type="text/javascript" src="rules/bookmarks.js"></script>
 <script type="text/javascript" src="rules/comments.js"></script>
 <script type="text/javascript" src="rules/common.js"></script>
 <script type="text/javascript" src="rules/dailies.js"></script>
@@ -315,10 +316,10 @@ Comment can be an artist report with a tag and duration.
 <div id="sidepanel">
 	<div id="sidepanel_hide" class="button" title="Hide side panel" onclick="u_SidePanelHideOnClick()">&gt;&gt; H I D E &gt;&gt;</div>
 	<div id="sidepanel_news" style="display:none">
-		<div class="label button" id="news_refresh" onclick="nw_NewsLoad()" title="Refresh news" style="width:18px; height:18px; background-image:url(rules/icons/refresh.png);"></div>
-		<div class="label button" id="news_sidepanel_btn" onclick="nw_NewsOnClick()">News</div>
+		<div class="label button refresh" onclick="nw_NewsLoad()" title="Refresh news"></div>
+		<div class="label button" id="news_label" onclick="nw_NewsOnClick()">News</div>
 		<div class="body">
-			<div class="news_ctrl">
+			<div id="news_ctrl">
 				<div class="infotooltip" style="float: right; margin: 0; padding: 0;" title="News:
 If you assigned on any shot (location) you will receive all its changes.
 To receive all news from some location and all its subfolders (project,scene)
@@ -329,7 +330,7 @@ You can remove all [DA] news, only visible [DV] or hidden [DH] news during filte
 To remove only one news link double click [-] button at the top-left corner.
 Remember any delete operation buttons in RULES requires double-click.
 "				></div>
-				<div class="news_ctrl_btns">
+				<div id="news_ctrl_btns">
 					<div class="button" title="Double click to delete all news"
 						style="background-image:url(rules/icons/delete_all.png);"
 						ondblclick="nw_DeleteNews()"></div>
@@ -381,8 +382,33 @@ Remember any delete operation buttons in RULES requires double-click.
 			<div id="news"></div>
 		</div>
 	</div>
+	<div id="sidepanel_bookmarks" style="display:none">
+		<div class="label button refresh" onclick="bm_Load()" title="Refresh bookmakrs"></div>
+		<div id="bookmarks_label" class="label button" onclick="bm_OnClick()">Bookmarks</div>
+		<div class="body">
+			<div id="bookmarks_ctrl">
+				<div class="infotooltip" style="float: right; margin: 0; padding: 0;" title="Bookmarks:
+This is links to shots (locations) that you was assigned.
+Bookmark is created when you was added to the artists list.
+You can delete bookmark only in special cases:
+1. You are already not assigned.
+2. Shot was omitted.
+3. Location does not exist any more.
+"				></div>
+				<div class="button" id="bookmakrs_thumbs_btn"
+					onclick="bm_ThumbnailsOnClick()"
+					title="Display thumbnails.">
+					Thmb</div>
+				<div class="button"
+					ondblclick="bm_DeleteObsoleteOnClick()"
+					title="Double click to delete obsolete bookmarks.">
+					DOB</div>
+			</div>
+			<div id="bookmarks"></div>
+		</div>
+	</div>
 	<div id="sidepanel_playlist">
-		<div class="label button" id="playlist_refresh" style="width:18px; height:18px; background-image:url(rules/icons/refresh.png);" onclick="p_RefreshOnClick()"></div>
+		<div class="label button refresh" onclick="p_RefreshOnClick()"></div>
 		<div class="label button" onclick="p_OnClick()">Playlist</div>
 		<div class="body">
 			<div class="playlist_ctrl playlist_ctrl_top">
@@ -461,8 +487,7 @@ So folder will appear on unpack.
 		</div>
 	</div>
 	<div id="sidepanel_recent">
-		<div class="label button" id="recent_refresh" onclick="nw_RecentRefresh()"
-			style="width:18px; height:18px; background-image:url(rules/icons/refresh.png)";></div>
+		<div class="label button refresh" onclick="nw_RecentRefresh()"></div>
 		<div class="label button" onclick="nw_RecentOnClick()">Recent</div>
 		<div class="body">
 			<div id="recent"></div>
@@ -533,12 +558,6 @@ Hidden folders increase system speed.">
 					AFANASY</a></div>
 			<!--div style="text-align:center; padding: 10px 0 0 0;">
 				<a href="afanasy/webvisor/" target="_blank">Database Statistics</a></div-->
-			<!--div style="text-align:center; padding: 10px 0 0 0;">
-				<a href="http://cgru.info/firefox/cgru-addon.xpi" target="_blank" onclick="u_OpenCloseHeader()">
-					Firefox Add-on</a></div-->
-			<div><br>about:config</div>
-			<div>security.mixed_content.block_active_content</div>
-			<div>false</div>
 		</div>
 	</div>
 	<div id="headeropenbtn" class="headeropenbtn button" onclick="u_OpenCloseHeader()"
@@ -552,8 +571,6 @@ Hidden folders increase system speed.">
 			style="background-image:url(rules/icons/previous.png);"></a>
 		<a class="button" id="navigate_next" title="Navigate to the next folder (shot)"
 			style="background-image:url(rules/icons/next.png);"></a>
-		<div id="news_count" onclick="u_SidePanelOpen();nw_NewsOpen()" title="News Counter.
-Click to refresh and open news." style="display: none;"></div>
 		<div id="panel_logo"><img id="panel_logo_img" src="rules/icons/rules.png" width="90px" height="30px"></div>
 		<div id="assets"></div>
 	</div>

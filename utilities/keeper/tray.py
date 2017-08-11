@@ -17,12 +17,12 @@ import software
 
 from nimby_dialog import NimbyDialog
 
-from cgrupyqt import QtCore, QtGui
+from Qt import QtCore, QtGui, QtWidgets
 
 
-class ActionCommand(QtGui.QAction):
+class ActionCommand(QtWidgets.QAction):
     def __init__(self, parent, name, command, iconpath=None):
-        QtGui.QAction.__init__(self, name, parent)
+        QtWidgets.QAction.__init__(self, name, parent)
         if iconpath is not None:
             iconpath = cgruutils.getIconFileName(iconpath)
             if iconpath is not None:
@@ -36,21 +36,19 @@ class ActionCommand(QtGui.QAction):
         QtCore.QProcess.startDetached(self.cmd, [])
 
 
-class Tray(QtGui.QSystemTrayIcon):
+class Tray(QtWidgets.QSystemTrayIcon):
     def __init__(self, parent=None):
-        QtGui.QSystemTrayIcon.__init__(self, parent)
+        QtWidgets.QSystemTrayIcon.__init__(self, parent)
         self.parent = parent
 
         # Menu:
         self.menu = dict()
-        self.menu['menu'] = QtGui.QMenu()
+        self.menu['menu'] = QtWidgets.QMenu()
 
         # Update item only if CGRU_UPDATE_CMD defined:
         if cgruconfig.VARS['CGRU_UPDATE_CMD'] is not None:
-            action = QtGui.QAction('Update', self)
-            QtCore.QObject.connect(action,
-                                   QtCore.SIGNAL('triggered()'),
-                                   cmd.update)
+            action = QtWidgets.QAction('Update', self)
+            action.triggered.connect( cmd.update)
             self.menu['menu'].addAction(action)
             self.menu['menu'].addSeparator()
 
@@ -117,9 +115,7 @@ class Tray(QtGui.QSystemTrayIcon):
                         was_separator = False
                     action = ActionCommand(self, itemname, filename, iconpath)
                     self.menu[menuname].addAction(action)
-                    QtCore.QObject.connect(action,
-                                           QtCore.SIGNAL('triggered()'),
-                                           action.runCommand)
+                    action.triggered.connect( action.runCommand)
                     if separator:
                         self.menu[menuname].addSeparator()
 
@@ -127,70 +123,50 @@ class Tray(QtGui.QSystemTrayIcon):
         if not self.addMenu(self.menu['menu'], 'AFANASY'):
             self.menu['AFANASY'].addSeparator()
 
-        action = QtGui.QAction('Web GUI', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               cmd.afwebgui)
+        action = QtWidgets.QAction('Web GUI', self)
+        action.triggered.connect( cmd.afwebgui)
         self.menu['AFANASY'].addAction(action)
         self.menu['AFANASY'].addSeparator()
 
-        self.action_user = QtGui.QAction('Set User...', self)
-        QtCore.QObject.connect(self.action_user,
-                               QtCore.SIGNAL('triggered()'),
-                               render.setUserDialog)
+        self.action_user = QtWidgets.QAction('Set User...', self)
+        self.action_user.triggered.connect( render.setUserDialog)
         self.action_user.setToolTip('Change local render user name.')
         self.menu['AFANASY'].addAction(self.action_user)
 
-        action = QtGui.QAction('Set nimby', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               nimby.setnimby)
+        action = QtWidgets.QAction('Set nimby', self)
+        action.triggered.connect( nimby.setnimby)
         self.menu['AFANASY'].addAction(action)
 
-        action = QtGui.QAction('Set NIMBY', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               nimby.setNIMBY)
+        action = QtWidgets.QAction('Set NIMBY', self)
+        action.triggered.connect( nimby.setNIMBY)
         self.menu['AFANASY'].addAction(action)
 
-        action = QtGui.QAction('Set Free', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               nimby.setFree)
+        action = QtWidgets.QAction('Set Free && Unpause', self)
+        action.triggered.connect( nimby.setFreeUnpause)
         self.menu['AFANASY'].addAction(action)
 
-        action = QtGui.QAction('Eject Tasks', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               nimby.ejectTasks)
+        action = QtWidgets.QAction('Eject Tasks', self)
+        action.triggered.connect( nimby.ejectTasks)
         self.menu['AFANASY'].addAction(action)
 
-        action = QtGui.QAction('Eject Not My Tasks', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               nimby.ejectNotMyTasks)
+        action = QtWidgets.QAction('Eject Not My Tasks', self)
+        action.triggered.connect( nimby.ejectNotMyTasks)
         self.menu['AFANASY'].addAction(action)
 
-        action = QtGui.QAction('Render Info', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               self.renderInfo)
+        action = QtWidgets.QAction('Render Info', self)
+        action.triggered.connect( self.renderInfo)
         self.menu['AFANASY'].addAction(action)
 
         self.menu['AFANASY'].addSeparator()
 
-        action = QtGui.QAction('Nimby Schedule...', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               self.editNimby)
+        action = QtWidgets.QAction('Nimby Schedule...', self)
+        action.triggered.connect( self.editNimby)
         self.menu['AFANASY'].addAction(action)
 
         self.menu['AFANASY'].addSeparator()
 
-        action = QtGui.QAction('Set Server...', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               cmd.setAFANASYServer)
+        action = QtWidgets.QAction('Set Server...', self)
+        action.triggered.connect( cmd.setAFANASYServer)
         self.menu['AFANASY'].addAction(action)
 
 
@@ -200,42 +176,34 @@ class Tray(QtGui.QSystemTrayIcon):
         if not 'Software' in self.menu:
             self.addMenu(self.menu['menu'], 'Software')
             self.menu['menu'].addSeparator()
-            action = QtGui.QAction(
+            action = QtWidgets.QAction(
                 QtGui.QIcon(cgruutils.getIconFileName('folder')),
                 '[ browse ]',
                 self
             )
-            QtCore.QObject.connect(action,
-                                   QtCore.SIGNAL('triggered()'),
-                                   software.browse)
+            action.triggered.connect( software.browse)
             self.menu['Software'].addAction(action)
             for soft in software.Names:
                 icon = software.getIcon(soft)
                 if icon is None:
-                    action = QtGui.QAction(soft, self)
+                    action = QtWidgets.QAction(soft, self)
                 else:
-                    action = QtGui.QAction(icon, soft, self)
-                eval("QtCore.QObject.connect(action,"
-                     "                         QtCore.SIGNAL('triggered()'),"
-                     "                         software.start%s)" % soft)
+                    action = QtWidgets.QAction(icon, soft, self)
+                eval("action.triggered.connect(software.start%s)" % soft)
                 self.menu['Software'].addAction(action)
             # Software setup:
-            self.menu['Setup Soft'] = QtGui.QMenu('Setup Soft')
+            self.menu['Setup Soft'] = QtWidgets.QMenu('Setup Soft')
             self.menu['Software'].addMenu(self.menu['Setup Soft'])
             for soft in software.Names:
-                action = QtGui.QAction(soft, self)
-                eval("QtCore.QObject.connect(action,"
-                     "                         QtCore.SIGNAL('triggered()'),"
-                     "                         software.locate%s)" % soft)
+                action = QtWidgets.QAction(soft, self)
+                eval("action.triggered.connect(software.locate%s)" % soft)
                 self.menu['Setup Soft'].addAction(action)
             # Software examples:
-            self.menu['Examples'] = QtGui.QMenu('Examples')
+            self.menu['Examples'] = QtWidgets.QMenu('Examples')
             self.menu['Software'].addMenu(self.menu['Examples'])
             for soft in software.Names:
-                action = QtGui.QAction(soft, self)
-                eval("QtCore.QObject.connect(action,"
-                     "                         QtCore.SIGNAL('triggered()'),"
-                     "                         software.example%s)" % soft)
+                action = QtWidgets.QAction(soft, self)
+                eval("action.triggered.connect(software.example%s)" % soft)
                 self.menu['Examples'].addAction(action)
 
         # Add permanent items to 'Configure':
@@ -246,81 +214,56 @@ class Tray(QtGui.QSystemTrayIcon):
             self.addAction('Configure', False,  'HTTPS Server...', self.httpsServer)
             self.menu['Configure'].addSeparator()
 
-        action = QtGui.QAction('Set Web Browser...', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               cmd.setWebBrowser)
+        action = QtWidgets.QAction('Set Web Browser...', self)
+        action.triggered.connect( cmd.setWebBrowser)
         self.menu['Configure'].addAction(action)
 
-        action = QtGui.QAction('Set Open Folder...', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               cmd.setOpenCmd)
+        action = QtWidgets.QAction('Set Open Folder...', self)
+        action.triggered.connect( cmd.setOpenCmd)
         self.menu['Configure'].addAction(action)
 
-        action = QtGui.QAction('Set Docs URL...', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               cmd.setDocsURL)
+        action = QtWidgets.QAction('Set Docs URL...', self)
+        action.triggered.connect( cmd.setDocsURL)
         self.menu['Configure'].addAction(action)
 
-        action = QtGui.QAction('Set Text Editor...', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               cmd.setTextEditor)
+        action = QtWidgets.QAction('Set Text Editor...', self)
+        action.triggered.connect( cmd.setTextEditor)
         self.menu['Configure'].addAction(action)
 
-        action = QtGui.QAction('Edit Config...', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               cmd.editCGRUConfig)
+        action = QtWidgets.QAction('Edit Config...', self)
+        action.triggered.connect( cmd.editCGRUConfig)
         self.menu['Configure'].addAction(action)
 
         self.menu['Configure'].addSeparator()
 
-        action = QtGui.QAction('Reload Config', self)
-        QtCore.QObject.connect(action,
-                               QtCore.SIGNAL('triggered()'),
-                               cmd.confReload)
+        action = QtWidgets.QAction('Reload Config', self)
+        action.triggered.connect( cmd.confReload)
         self.menu['Configure'].addAction(action)
 
         self.addAction('menu', True,  'Show Info...',         self.cgruInfo, 'info')
-        self.addAction('menu', True,  'Documentation',        cmd.cgruDocs)
+        self.addAction('menu', True,  'Documentation...',     cmd.cgruDocs)
+        self.addAction('menu', False, 'Forum...',             cmd.cgruForum)
         self.addAction('menu', True,  'Restart',              cmd.restart)
         self.addAction('menu', False, 'Quit',                 cmd.quit)
 
         self.setContextMenu(self.menu['menu'])
 
-        # Prepare Icons:
-        self.icons = dict()
+        # Tray tooltip:
+        self.setToolTip('%s Keeper' % cgruconfig.VARS['company'].upper())
+
+        # Tray icon:
         icon_filename = cgruconfig.VARS['tray_icon']
-        if icon_filename is None:
-            icon_filename = 'keeper'
+        if icon_filename is None: icon_filename = 'keeper'
         icon_filename = cgruutils.getIconFileName(icon_filename)
-        self.icon_epmty = QtGui.QPixmap(icon_filename)
-        self.icons['empty'] = QtGui.QIcon(self.icon_epmty)
-        self.makeIcon('offline_free',       online=False, nimby=False, busy=False)
-        self.makeIcon('online_free',        online=True,  nimby=False, busy=False)
-        self.makeIcon('offline_nimby',      online=False, nimby=True,  busy=False)
-        self.makeIcon('online_nimby',       online=True,  nimby=True,  busy=False)
-        self.makeIcon('offline_free_busy',  online=False, nimby=False, busy=True)
-        self.makeIcon('online_free_busy',   online=True,  nimby=False, busy=True)
-        self.makeIcon('offline_nimby_busy', online=False, nimby=True,  busy=True)
-        self.makeIcon('online_nimby_busy',  online=True,  nimby=True,  busy=True)
-
-        # Decorate and show:
+        self.icon_pixmap = QtGui.QPixmap(icon_filename)
+        self.icon_default = QtGui.QIcon(self.icon_pixmap)
         self.showIcon()
-        self.setToolTip(
-            '%s Keeper %s' % (
-                cgruconfig.VARS['company'].upper(),
-                os.getenv('CGRU_VERSION', '')
-            )
-        )
-        QtCore.QObject.connect(self,
-                               QtCore.SIGNAL('activated( QSystemTrayIcon::ActivationReason)'),
-                               self.activated_slot)
 
+        # Show:
+        self.activated.connect( self.activated_slot)
         self.show()
+
+    def getIconPixmap( self): return self.icon_pixmap
 
     def addMenu(self, parentmenu, menuname, iconname=None):
         if menuname in self.menu:
@@ -343,87 +286,35 @@ class Tray(QtGui.QSystemTrayIcon):
             iconname = actionname.lower().replace(' ', '_').replace('.', '')
 
         iconpath = cgruutils.getIconFileName(iconname)
-        action = QtGui.QAction(actionname, self)
+        action = QtWidgets.QAction(actionname, self)
 
         if iconpath is not None:
             action.setIcon(QtGui.QIcon(iconpath))
 
-        QtCore.QObject.connect(action, QtCore.SIGNAL('triggered()'), function)
+        action.triggered.connect( function)
         self.menu[menuname].addAction(action)
 
     def showUser(self, i_user_name):
         self.action_user.setText('User: "%s"' % i_user_name)
 
-    def makeIcon(self, name, online, nimby, busy):
-        painting = self.icon_epmty
-        painter = QtGui.QPainter(painting)
-        icon_size = painting.width()
-        text_font = QtGui.QFont('Arial', icon_size / 3)
-        text_font.setBold(True)
-        rect_back = QtCore.QRect(
-            icon_size * 3 / 10,
-            icon_size * 3 / 10,
-            icon_size * 2 / 5,
-            icon_size * 2 / 5
-        )
-        text_color = QtGui.QColor(0, 0, 0)
-        back_color = QtGui.QColor(150, 150, 150)
-        if online:
-            if nimby:
-                if busy:
-                    text_color = QtGui.QColor(255, 0, 0)
-                    back_color = QtGui.QColor(50, 50, 250)
-                else:
-                    text_color = QtGui.QColor(190, 190, 190)
-                    back_color = QtGui.QColor(40, 40, 240)
-            else:
-                if busy:
-                    text_color = QtGui.QColor(255, 0, 0)
-                    back_color = QtGui.QColor(90, 90, 90)
-                else:
-                    text_color = QtGui.QColor(0, 200, 0)
-                    back_color = QtGui.QColor(90, 90, 90)
-        elif nimby:
-            back_color = QtGui.QColor(140, 140, 250)
-        rect_render = QtCore.QRect(
-            icon_size / 4,
-            icon_size / 4,
-            icon_size / 2,
-            icon_size / 2
-        )
-        painter.fillRect(rect_back, back_color)
-        painter.setFont(text_font)
-        painter.setPen(text_color)
-        painter.drawText(rect_render, QtCore.Qt.AlignCenter, 'R')
-        self.icons[name] = QtGui.QIcon(painting)
-
-    def showIcon(self, name='empty'):
-        self.setIcon(self.icons[name])
-        self.parent.setWindowIcon(self.icons[name])
-
-    def showRenderIcon(self, online, nimby, busy):
-        if online:
-            name = 'online'
+    def showIcon(self, i_icon = None):
+        if i_icon is None:
+            self.icon = self.icon_default
         else:
-            name = 'offline'
-        if nimby:
-            name += '_nimby'
-        else:
-            name += '_free'
-        if busy:
-            name += '_busy'
-        self.showIcon(name)
+            self.icon = i_icon
+        self.setIcon( self.icon)
+        self.parent.setWindowIcon( self.icon)
 
     def activated_slot(self, reason):
-        if reason == QtGui.QSystemTrayIcon.Trigger:
+        if reason == QtWidgets.QSystemTrayIcon.Trigger:
             return
-        elif reason == QtGui.QSystemTrayIcon.DoubleClick:
+        elif reason == QtWidgets.QSystemTrayIcon.DoubleClick:
             render.refresh()
-        elif reason == QtGui.QSystemTrayIcon.MiddleClick:
+        elif reason == QtWidgets.QSystemTrayIcon.MiddleClick:
             return
-        elif reason == QtGui.QSystemTrayIcon.Context:
+        elif reason == QtWidgets.QSystemTrayIcon.Context:
             return
-        elif reason == QtGui.QSystemTrayIcon.Unknown:
+        elif reason == QtWidgets.QSystemTrayIcon.Unknown:
             return
 
     def renderInfo(self):

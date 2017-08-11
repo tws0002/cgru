@@ -12,6 +12,7 @@ using namespace af;
 #define AFOUTPUT
 #undef AFOUTPUT
 #include "../include/macrooutput.h"
+#include "logger.h"
 
 Job::Job( int i_id)
 {
@@ -61,9 +62,9 @@ bool Job::jsonRead( const JSON &i_object, std::string * io_changes)
 	jr_regexp("need_os",            m_need_os,             i_object, io_changes);
 	jr_regexp("need_properties",    m_need_properties,     i_object, io_changes);
 
-	jr_string("user_name",     m_user_name,     i_object);
+	jr_string("user_name",     m_user_name,     i_object, io_changes);
 
-	jr_stringmap("folders", m_folders, i_object);
+	jr_stringmap("folders", m_folders, i_object, io_changes);
 
 	bool offline = false;
 	jr_bool("offline", offline, i_object, io_changes);
@@ -86,12 +87,16 @@ bool Job::jsonRead( const JSON &i_object, std::string * io_changes)
 	if( jr_bool("ignorepaused", ignorepaused, i_object, io_changes))
 		setIgnorePausedFlag( ignorepaused);
 
+	Work::jsonRead( i_object, io_changes);
+
 	// Paramers below are not editable and read only on creation
 	// When use edit parameters, log provided to store changes
 	if( io_changes )
 		return true;
 
 	Node::jsonRead( i_object);
+
+	jr_int64 ("serial", m_serial, i_object);
 
 	jr_string("host_name", m_host_name,     i_object);
 	//jr_uint32("flags",   m_flags,         i_object);
@@ -140,11 +145,12 @@ void Job::v_jsonWrite( std::ostringstream & o_str, int i_type) const
 
 	Node::v_jsonWrite( o_str, i_type);
 
+	Work::jsonWrite( o_str, i_type);
+
+	o_str << ",\n\"serial\":" << m_serial;
+
 	o_str << ",\n\"user_name\":\"" << m_user_name << "\"";
 	o_str << ",\n\"host_name\":\"" << m_host_name << "\"";
-
-/*	if( m_flags != 0 )
-		o_str << ",\n\"flags\":"                      << m_flags;*/
 
 	o_str << ",\n\"st\":" << m_state;
 	if( m_state != 0 )
@@ -197,16 +203,7 @@ void Job::v_jsonWrite( std::ostringstream & o_str, int i_type) const
 		o_str << ",\n\"time_life\":"                  << m_time_life;
 
 	if( m_folders.size())
-	{
-		o_str << ",\n\"folders\":{";
-		int i = 0;
-		for( std::map<std::string,std::string>::const_iterator it = m_folders.begin(); it != m_folders.end(); it++, i++)
-		{
-			if( i ) o_str << ",";
-			o_str << "\n\"" << (*it).first << "\":\""<< af::strEscape((*it).second) << "\"";
-		}
-		o_str << "\n}";
-	}
+		af::jw_stringmap("folders", m_folders, o_str);
 
 	if( hasHostsMask())
 		o_str << ",\n\"hosts_mask\":\""         << af::strEscape( m_hosts_mask.getPattern()         ) << "\"";
@@ -240,6 +237,7 @@ void Job::v_jsonWrite( std::ostringstream & o_str, int i_type) const
 void Job::initDefaultValues()
 {
 	m_id = 0;
+	m_serial = 0;
 	m_blocks_num = 0;
 	m_max_running_tasks = -1;
 	m_max_running_tasks_per_host = -1;
@@ -313,6 +311,10 @@ Job::~Job()
 void Job::v_readwrite( Msg * msg)
 {
 	Node::v_readwrite( msg);
+	Work::readwrite( msg);
+	/* NEW VERSION
+	rw_int64_t ( m_serial, msg);
+	*/
 
 	rw_int32_t ( m_blocks_num,                 msg);
 	rw_int64_t ( m_flags,                      msg);
@@ -410,7 +412,7 @@ const std::string Job::getFolder() const
 
 int Job::v_calcWeight() const
 {
-	int weight = Node::v_calcWeight();
+	int weight = Work::calcWeight();
 	weight += sizeof(Job) - sizeof( Node);
 	for( int b = 0; b < m_blocks_num; b++) weight += m_blocks_data[b]->calcWeight();
 	weight += weigh( m_description);
@@ -418,6 +420,7 @@ int Job::v_calcWeight() const
 	weight += weigh( m_host_name);
 	weight += weigh( m_project);
 	weight += weigh( m_department);
+	weight += weigh( m_folders);
 	weight += m_hosts_mask.weigh();
 	weight += m_hosts_mask_exclude.weigh();
 	weight += m_depend_mask.weigh();
@@ -462,6 +465,8 @@ void Job::generateInfoStreamJob(    std::ostringstream & o_str, bool full) const
    if( m_host_name.size()) o_str << "@" << m_host_name;
    o_str << "[" << m_user_list_order << "]";
 	if( isHidden()) o_str << " (hidden)";
+
+	Work::generateInfoStream( o_str, full);
 
 	bool display_blocks = true;
 	if( m_blocks_num == 0)
@@ -526,8 +531,7 @@ void Job::generateInfoStreamJob(    std::ostringstream & o_str, bool full) const
 	if( m_folders.size())
 	{
 		o_str << "\nFolders:";
-		int i = 0;
-		for( std::map<std::string,std::string>::const_iterator it = m_folders.begin(); it != m_folders.end(); it++, i++)
+		for( std::map<std::string,std::string>::const_iterator it = m_folders.begin(); it != m_folders.end(); it++)
 		{
 			o_str << "\n\"" << (*it).first << "\":\""<< af::strEscape((*it).second) << "\"";
 		}

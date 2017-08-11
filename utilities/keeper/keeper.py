@@ -22,7 +22,16 @@ if sys.platform.find('win') == 0:
 	qtconf_file.write('Binaries = ' + pyqt4dir + '\n')
 	qtconf_file.close()
 
-from cgrupyqt import QtGui
+if sys.platform.find('darwin') == 0:
+    try:
+        import AppKit
+        info = AppKit.NSBundle.mainBundle().infoDictionary()
+        info["LSBackgroundOnly"] = "1"
+    except:
+        print("WARNING: pyobjc-framework-Cocoa is not installed, can't hide dock icon.")
+
+
+from Qt import QtWidgets
 
 import cgruconfig
 import cmd
@@ -39,11 +48,11 @@ if keeper_cmd is None:
 cgruconfig.VARS['CGRU_KEEPER_CMD'] = keeper_cmd
 
 # Create tray application with refresh:
-app = QtGui.QApplication(sys.argv)
+app = QtWidgets.QApplication(sys.argv)
 app.setQuitOnLastWindowClosed(False)
 cmd.Application = app
 serverhttps.serve(cgruconfig.VARS['keeper_port_https'])
 cmd.Tray = Tray(app)
 refresh = Refresh(app)
-server = Server(app)
+server = Server()
 app.exec_()

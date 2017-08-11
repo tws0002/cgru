@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-import hou
+import re
 import time
+
+import hou
 
 import af
 import afcommon
@@ -31,7 +33,7 @@ class BlockParameters:
         self.prefix = prefix
         self.preview = ''
         self.name = ''
-        self.type = ''
+        self.service = ''
         self.parser = ''
         self.cmd = ''
         self.cmd_useprefix = True
@@ -43,6 +45,10 @@ class BlockParameters:
         self.tasks_names = []
         self.tasks_cmds = []
         self.tasks_previews = []
+        # Fill in this array with files to delete in a block post command.
+        # Files should have a common afanasy "@#*@" pattern,
+        # it will be replaced with "*" for shell.
+        self.delete_files = []
         # Parameters to restore ROP changes:
         self.soho_foreground = None
         self.soho_outputmode = None
@@ -54,7 +60,6 @@ class BlockParameters:
         self.start_paused = int(afnode.parm('start_paused').eval())
         self.platform = str(afnode.parm('platform').eval())
         self.subtaskdepend = int(afnode.parm('subtaskdepend').eval())
-        self.parser = self.afnode.parm('override_parser').eval()
         self.priority = -1
         self.max_runtasks = -1
         self.maxperhost = -1
@@ -70,6 +75,7 @@ class BlockParameters:
         self.preview_approval = afnode.parm('preview_approval').eval()
 
         if afnode.parm('enable_extended_parameters').eval():
+            self.parser = self.afnode.parm('override_parser').eval()
             self.priority = int(afnode.parm('priority').eval())
             self.max_runtasks = int(afnode.parm('max_runtasks').eval())
             self.maxperhost = int(afnode.parm('maxperhost').eval())
@@ -124,7 +130,7 @@ class BlockParameters:
 
         # Process output driver type to construct a command:
         if ropnode:
-            self.type = 'hbatch'
+            self.service = 'hbatch'
 
             if not isinstance(ropnode, hou.RopNode):
                 hou.ui.displayMessage(
@@ -141,8 +147,12 @@ class BlockParameters:
             roptype = ropnode.type().name()
 
             if roptype == 'ifd':
+                if ropnode.node(ropnode.parm('camera').eval())==None:
+                    hou.ui.displayMessage("Camera in "+ropnode.name()+" is not valid",severity = hou.severityType.Error)
+                    return
+
                 if not ropnode.parm('soho_outputmode').eval():
-                    self.type = 'hbatch_mantra'
+                    self.service = 'hbatch_mantra'
 
                 vm_picture = ropnode.parm('vm_picture')
 
@@ -153,7 +163,28 @@ class BlockParameters:
                             vm_picture.evalAsStringAtFrame(self.frame_last)
                         )
             elif roptype == 'rib':
-                self.type = 'hbatch_prman'
+                self.service = 'hbatch_prman'
+
+            elif roptype == 'arnold':
+                if not ropnode.parm('soho_outputmode').eval():
+                    self.service = 'houdinitoarnold'
+
+                ar_picture = ropnode.parm('ar_picture')
+
+                if ar_picture is not None:
+                    self.preview = \
+                        afcommon.patternFromPaths(
+                            ar_picture.evalAsStringAtFrame(self.frame_first),
+                            ar_picture.evalAsStringAtFrame(self.frame_last)
+                        )
+                        
+            elif roptype == 'alembic':
+                self.numeric = False
+                taskname = ropnode.name()
+                taskname += ' ' + str(self.frame_first)
+                taskname += '-' + str(self.frame_last)
+                self.tasks_names.append(taskname)
+                self.tasks_cmds.append(self.frame_first)
 
             # Block command:
             self.cmd = 'hrender_af'
@@ -179,10 +210,11 @@ class BlockParameters:
             self.cmd += ' "%(hipfilename)s"'
             self.cmd += ' "%s"' % ropnode.path()
 
-            # Override service:
-            override_service = self.afnode.parm('override_service').eval()
-            if override_service is not None and len(override_service):
-                self.type = override_service
+            if afnode.parm('enable_extended_parameters').eval():
+                # Override service:
+                override_service = self.afnode.parm('override_service').eval()
+                if override_service is not None and len(override_service):
+                    self.service = override_service
 
         else:
             # Custom command driver:
@@ -200,15 +232,23 @@ class BlockParameters:
                     self.name = self.cmd.split(' ')[0]
 
                 # Service:
-                self.type = self.afnode.parm('cmd_service').eval()
-                if self.type is None or self.type == '':
-                    self.type = self.cmd.split(' ')[0]
+                self.service = self.afnode.parm('cmd_service').eval()
+                if self.service is None or self.service == '':
+                    self.service = self.cmd.split(' ')[0]
                 # Parser:
                 self.parser = self.afnode.parm('cmd_parser').eval()
 
                 # Prefix:
                 self.cmd_useprefix = \
                     int(self.afnode.parm('cmd_use_afcmdprefix').eval())
+
+                # Delete files on job deletion:
+                if self.afnode.parm('cmd_delete_files').eval():
+                    cmd_files = self.afnode.parm('cmd_files')
+                    self.delete_files.append(afcommon.patternFromPaths(
+                        cmd_files.evalAsStringAtFrame(self.frame_first),
+                        cmd_files.evalAsStringAtFrame(self.frame_last)
+                    ))
 
             elif not for_job_only:
                 hou.ui.displayMessage('Can\'t process "%s"' % afnode.path())
@@ -271,7 +311,7 @@ class BlockParameters:
         # Place hipfilename and auxargs
         cmd = self.cmd % vars()
 
-        block = af.Block(self.name, self.type)
+        block = af.Block(self.name, self.service)
         block.setParser(self.parser)
         block.setCommand(cmd, self.cmd_useprefix)
         if self.preview != '':
@@ -303,6 +343,13 @@ class BlockParameters:
 
         block.setTasksMaxRunTime(self.maxruntime)
 
+        # Delete files in a block post command:
+        if len(self.delete_files):
+            post_cmd = 'deletefiles'
+            for files in self.delete_files:
+                post_cmd += ' "%s"' % re.sub('@#*@', '*', files)
+            block.setCmdPost(post_cmd)
+
         if self.subblock:
             if self.max_runtasks > -1:
                 block.setMaxRunningTasks(self.max_runtasks)
@@ -333,19 +380,22 @@ class BlockParameters:
                   self.afnode.name())
             return
 
-        # Calculate temporary hip name:
-        ftime = time.time()
-        tmphip = '%s_%s%s%s.hip' % (
-            hou.hipFile.name(),
-            afcommon.filterFileName(self.job_name),
-            time.strftime('.%m%d-%H%M%S-'),
-            str(ftime - int(ftime))[2:5]
-        )
+        renderhip = hou.hipFile.name()
 
-        # use mwrite, because hou.hipFile.save(tmphip)
-        # changes current scene file name to tmphip,
-        # at least in version 9.1.115
-        hou.hscript('mwrite -n "%s"' % tmphip)
+        if self.afnode.parm('render_temp_hip').eval():
+            # Calculate temporary hip name:
+            ftime = time.time()
+            renderhip = '%s/%s%s%s.hip' % (
+                os.path.dirname(renderhip),
+                afcommon.filterFileName(self.job_name),
+                time.strftime('.%m%d-%H%M%S-'),
+                str(ftime - int(ftime))[2:5]
+            )
+
+            # use mwrite, because hou.hipFile.save(renderhip)
+            # changes current scene file name to renderhip,
+            # at least in version 9.1.115
+            hou.hscript('mwrite -n "%s"' % renderhip)
 
         job = af.Job()
         job.setName(self.job_name)
@@ -386,24 +436,16 @@ class BlockParameters:
         job.setFolder('input', os.path.dirname(hou.hipFile.name()))
 
         images = None
-        ifds = []
         for blockparam in blockparams:
-            job.blocks.append(blockparam.genBlock(tmphip))
-            if blockparam.preview:
-                if blockparam.preview.endswith(".ifd"):
-                    # find ifd paths for use in deletion post command
-                    ifds.append(blockparam.preview)
-                else:
-                    # Set ouput folder from the first block with images to preview:
-                    if not images:
-                        images = blockparam.preview
-                        job.setFolder('output', os.path.dirname(images))
+            job.blocks.append(blockparam.genBlock(renderhip))
 
-        postCmd = "deletefiles"
-        if ifds:
-            postCmd = postCmd + " " + " ".join('"' + ifd.replace("@####@", "*") + '"' for ifd in ifds)
+            # Set ouput folder from the first block with images to preview:
+            if images is None and blockparam.preview != '':
+                images = blockparam.preview
+                job.setFolder('output', os.path.dirname(images))
 
-        job.setCmdPost(postCmd + ' "%s"' % tmphip)
+        if self.afnode.parm('render_temp_hip').eval():
+            job.setCmdPost('deletefiles "%s"' % renderhip)
 
         if VERBOSE:
             job.output(True)
@@ -439,7 +481,7 @@ def getBlockParameters(afnode, ropnode, subblock, prefix, frame_range):
     params = []
 
     if ropnode is not None and ropnode.type().name() == 'ifd' and afnode.parm('sep_enable').eval():
-    # Case mantra separate render:
+        # Case mantra separate render:
 
         block_generate = \
             BlockParameters(afnode, ropnode, subblock, prefix, frame_range)
@@ -485,33 +527,28 @@ def getBlockParameters(afnode, ropnode, subblock, prefix, frame_range):
                 )
 
         if read_rop:
-            images = ropnode.parm('vm_picture')
-            files = ropnode.parm('soho_diskfile')
-            afnode.parm('sep_images').set(images.unexpandedString())
-            afnode.parm('sep_files').set(files.unexpandedString())
+            parm_images = ropnode.parm('vm_picture')
+            parm_files  = ropnode.parm('soho_diskfile')
+        else:
+            parm_images = afnode.parm('sep_images')
+            parm_files  = afnode.parm('sep_files')
 
         images = afcommon.patternFromPaths(
-            afnode.parm('sep_images').evalAsStringAtFrame(
-                block_generate.frame_first),
-            afnode.parm('sep_images').evalAsStringAtFrame(
-                block_generate.frame_last)
-        )
+            parm_images.evalAsStringAtFrame( block_generate.frame_first),
+            parm_images.evalAsStringAtFrame( block_generate.frame_last))
 
         files = afcommon.patternFromPaths(
-            afnode.parm('sep_files').evalAsStringAtFrame(
-                block_generate.frame_first),
-            afnode.parm('sep_files').evalAsStringAtFrame(
-                block_generate.frame_last)
-        )
+            parm_files.evalAsStringAtFrame( block_generate.frame_first),
+            parm_files.evalAsStringAtFrame( block_generate.frame_last))
 
         if run_rop:
             if join_render:
                 block_generate.preview = images
 
             if not join_render:
-                block_generate.type = 'hbatch'
+                block_generate.service = 'hbatch'
             else:
-                block_generate.type = 'hbatch_mantra'
+                block_generate.service = 'hbatch_mantra'
                 block_generate.cmd = block_generate.cmd.replace(
                     'hrender_af', 'hrender_separate'
                 )
@@ -525,15 +562,15 @@ def getBlockParameters(afnode, ropnode, subblock, prefix, frame_range):
                                            frame_range)
             block_render.name = blockname + '-R'
             block_render.cmd = 'mantra'
-            block_render.type = block_render.cmd
+            block_render.service = block_render.cmd
             if run_rop:
                 block_render.dependmask = block_generate.name
 
             if tile_render or del_rop_files or use_tmp_img_folder:
                 block_render.cmd = 'mantrarender '
 
-            if del_rop_files and not tile_render:
-                block_render.cmd += 'd'
+            if del_rop_files:
+                block_render.delete_files.append(files)
 
             if use_tmp_img_folder:
                 block_render.cmd += 't'
@@ -548,6 +585,9 @@ def getBlockParameters(afnode, ropnode, subblock, prefix, frame_range):
                                    block_generate.frame_inc):
                     arguments = afnode.parm(
                         'sep_render_arguments').evalAsStringAtFrame(frame)
+                    arguments = arguments.replace(
+                        '@FILES@', parm_files.evalAsStringAtFrame( frame))
+
                     for tile in range(0, tiles):
                         block_render.tasks_names.append(
                             '%d tile %d' % (frame, tile))
@@ -561,29 +601,22 @@ def getBlockParameters(afnode, ropnode, subblock, prefix, frame_range):
                 block_render.cmd += afcommon.patternFromPaths(
                     afnode.parm('sep_render_arguments').evalAsStringAtFrame(block_generate.frame_first),
                     afnode.parm('sep_render_arguments').evalAsStringAtFrame(block_generate.frame_last)
-                )
+                ).replace('@FILES@', files)
                 block_render.preview = images
 
         if tile_render:
             cmd = 'exrjoin %(tile_divx)d %(tile_divy)d %(images)s d' % vars()
-
-            if del_rop_files:
-                cmd += ' && deletefiles -s "%s"' % files
 
             block_join = BlockParameters(
                 afnode, ropnode, subblock, prefix, frame_range
             )
 
             block_join.name = blockname + '-J'
-            block_join.type = 'generic'
+            block_join.service = 'generic'
             block_join.dependmask = block_render.name
             block_join.cmd = cmd
             block_join.cmd_useprefix = False
             block_join.preview = images
-
-        if read_rop:
-            afnode.parm('sep_images').set('')
-            afnode.parm('sep_files').set('')
 
         if tile_render:
             params.append(block_join)
@@ -606,21 +639,69 @@ def getBlockParameters(afnode, ropnode, subblock, prefix, frame_range):
             if not ds_node.parm(parm):
                 hou.ui.displayMessage('Control node "%s" does not have "%s" parameter' % (ds_node_path, parm))
                 return
+
+        enable_tracker = not afnode.parm('ds_tracker_manual').eval()
+        if enable_tracker:
+            # Tracker block:
+            par_start = getTrackerParameters(afnode, ropnode, subblock, prefix, frame_range, True)
+            params.append(par_start)
+
+        # A block for each slice:
         ds_num_slices = int(afnode.parm('ds_num_slices').eval())
         for s in range(0, ds_num_slices):
             par = BlockParameters(afnode, ropnode, subblock, prefix, frame_range)
+            sim_blocks_mask = par.name + '.*'
             par.name += '-s%d' % s
             par.frame_pertask = par.frame_last - par.frame_first + 1
+            if enable_tracker:
+                par.addDependMask(par_start.name)
+            par.fullrangedepend = True
             par.auxargs = ' --ds_node "%s"' % ds_node_path
             par.auxargs += ' --ds_address "%s"' % str(afnode.parm('ds_address').eval())
             par.auxargs += ' --ds_port %d' % int(afnode.parm('ds_port').eval())
             par.auxargs += ' --ds_slice %d' % s
             params.append(par)
+
+        if enable_tracker:
+            # Stop tracker block:
+            par_stop = getTrackerParameters(afnode, ropnode, subblock, prefix, frame_range, False)
+            par_stop.addDependMask(sim_blocks_mask)
+            params.append(par_stop)
+
+            # Set other block names for start tracker block.
+            # As start tracker block will set other block environment
+            # to specify started tracker and port.
+            par_start.cmd += ' --envblocks "%s|%s"' % (sim_blocks_mask, par_stop.name)
+            # On this block depend mask will be reset on tracker start:
+            par_start.cmd += ' --depblocks "%s"' % sim_blocks_mask
+
     else:
         params.append(
             BlockParameters(afnode, ropnode, subblock, prefix, frame_range)
         )
     return params
+
+
+def getTrackerParameters(i_afnode, i_ropnode, i_subblock, i_prefix, i_frame_range, i_start):
+    par = BlockParameters(i_afnode, i_ropnode, i_subblock, i_prefix, i_frame_range)
+    if i_prefix:
+        par.name = i_prefix + '-tracker'
+    else:
+        par.name = 'tracker'
+    par.frame_last = par.frame_first
+    par.frame_pertask = 1
+    par.subtaskdepend = False
+    par.fullrangedepend = True
+    par.capacity = int(i_afnode.parm('ds_tracker_capacity').eval())
+    par.hosts_mask = str(i_afnode.parm('ds_tracker_hostmask').eval())
+    par.service = str(i_afnode.parm('ds_tracker_service').eval())
+    par.parser = str(i_afnode.parm('ds_tracker_parser').eval())
+    if i_start:
+        par.cmd = 'htracker --start'
+    else:
+        par.cmd = 'htracker --stop'
+        par.name += '-stop'
+    return par
 
 
 def getJobParameters(afnode, subblock=False, frame_range=None, prefix=''):
@@ -629,7 +710,7 @@ def getJobParameters(afnode, subblock=False, frame_range=None, prefix=''):
 
     # Process frame range:
     if frame_range is None:
-        frame_first = hou.frame()
+        frame_first = int(hou.frame())
         frame_last = frame_first
         frame_inc = 1
     else:

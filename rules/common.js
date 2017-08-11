@@ -3,8 +3,8 @@ RULES = {};
 RULES.rufolder = 'rules';
 RULES_TOP = {};
 
-c_movieTypes = ['mpg','mpeg','mov','avi','mp4','m4v','ogg','ogv','mxf','flv'];
-c_movieTypesHTML = ['mp4','ogg'];
+c_movieTypes = ['mpg','mpeg','mov','avi','mp4','m4v','webm','ogg','ogv','mxf','flv'];
+c_movieTypesHTML = ['mp4','webm','ogg'];
 c_imageTypes = ['jpg','jpeg','png','exr','dpx','tga','tif','tiff','psd','xcf'];
 c_imageEditableTypes = ['jpg','jpeg','png'];
 c_archives = ['zip','rar','7z','001'];
@@ -205,12 +205,25 @@ function c_Log( i_msg)
 	c_logCount++;
 }
 
-function c_AuxFolder( i_name)
+function c_AuxFolder( i_folder)
 {
-	var name = c_PathBase( i_name);
-	for( var i = 0; i < RULES.aux_folders.length; i++)
-		if( name.toLowerCase().indexOf( RULES.aux_folders[i]) === 0 )
+	if( i_folder.status )
+	{
+		if( i_folder.status.flags && ( i_folder.status.flags.indexOf('aux') != -1 ))
 			return true;
+
+		if( i_folder.status.progress && ( i_folder.status.progress < 0 ))
+			return true;
+	}
+
+	if( i_folder.name )
+	{
+		var name = c_PathBase( i_folder.name);
+		for( var i = 0; i < RULES.aux_folders.length; i++)
+			if( name.toLowerCase().indexOf( RULES.aux_folders[i]) === 0 )
+				return true;
+	}
+
 	return false;
 }
 
@@ -273,12 +286,13 @@ function c_DT_DurFromSec( i_sec)
 function c_DT_DurFromNow( i_sec) { return c_DT_DurFromSec( (new Date()) / 1000 - i_sec); }
 function c_DT_DaysLeft( i_sec ) { return ( i_sec - (new Date()/1000) ) / ( 60 * 60 * 24 ); }
 
-function c_TC_FromFrame( i_frame)
+function c_TC_FromFrame( i_frame, fps, clamp)
 {
-	var fps = RULES.fps;
+    if( fps == null )
+        fps = RULES.fps;
 
 	var sec = Math.floor( i_frame / fps );
-	var frm = i_frame - sec * fps;
+	var frm = Math.round( i_frame - sec * fps);
 	var min = Math.floor( sec / 60);
 	sec = sec - min * 60;
 	var hrs = Math.floor( min / 60);
@@ -289,7 +303,11 @@ function c_TC_FromFrame( i_frame)
 	if( sec < 10 ) sec = '0' + sec;
 	if( frm < 10 ) frm = '0' + frm;
 
-	return hrs + ':' + min + ':' + sec + ':' + frm;
+    var tc = sec + ':' + frm;
+    if(( min != '00') || ( clamp !== true)) tc = min + ':' + tc;
+    if(( hrs != '00') || ( clamp !== true)) tc = hrs + ':' + tc;
+
+	return tc;
 }
 
 function c_TC_FromSting( i_str)
@@ -452,6 +470,7 @@ function c_ElToggleSelected( i_e)
 	var el = i_e;
 	if( i_e.currentTarget ) el = i_e.currentTarget;
 	c_ElSetSelected( el, el.m_selected != true );
+	return el.m_selected;
 }
 
 function c_ElSetSelected( i_e, i_selected )
@@ -570,6 +589,22 @@ function c_Bytes2KMG( i_bytes)
 	return (i_bytes/th).toFixed(1) + ' ' + lables[log];
 }
 
+function c_NumToStr( i_num, i_prec)
+{
+	if( i_prec == null )
+		i_prec = 2;
+
+	var str = '';
+	if( i_num.toFixed )
+		str = i_num.toFixed( i_prec);
+	else
+		str += i_num;
+
+	str = str.replace(/0*$/,'').replace(/\.$/,'');
+
+	return str;
+}
+
 function c_GetThumbFileName( i_file)
 {
 	var name = c_PathBase( i_file);
@@ -655,7 +690,7 @@ function c_GetAvatar( i_user_id, i_guest )
 		if( i_guest )
 			avatar = c_EmailDecode( avatar);
 		avatar = c_MD5( avatar.toLowerCase());
-		avatar = 'http://www.gravatar.com/avatar/' + avatar;
+		avatar = 'https://www.gravatar.com/avatar/' + avatar;
 	}
 
 	if( avatar && avatar.length )

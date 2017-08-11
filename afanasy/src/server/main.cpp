@@ -15,6 +15,7 @@
 #include "afcommon.h"
 #include "jobcontainer.h"
 #include "monitorcontainer.h"
+#include "socketsprocessing.h"
 #include "sysjob.h"
 #include "rendercontainer.h"
 #include "threadargs.h"
@@ -71,10 +72,10 @@ int main(int argc, char *argv[])
 	if( ENV.isHelpMode()) return 0;
 
 	// create directories if it is not exists
-	if( af::pathMakePath( ENV.getTempDir(),    af::VerboseOn ) == false) return 1;
-	if( af::pathMakeDir(  ENV.getJobsDir(),    af::VerboseOn ) == false) return 1;
-	if( af::pathMakeDir(  ENV.getUsersDir(),   af::VerboseOn ) == false) return 1;
-	if( af::pathMakeDir(  ENV.getRendersDir(), af::VerboseOn ) == false) return 1;
+	if( af::pathMakePath( ENV.getStoreFolder(),        af::VerboseOn ) == false) return 1;
+	if( af::pathMakeDir(  ENV.getStoreFolderJobs(),    af::VerboseOn ) == false) return 1;
+	if( af::pathMakeDir(  ENV.getStoreFolderRenders(), af::VerboseOn ) == false) return 1;
+	if( af::pathMakeDir(  ENV.getStoreFolderUsers(),   af::VerboseOn ) == false) return 1;
 
 // Server for windows can be me more simple and not use signals at all.
 // Windows is not a server platform, so it designed for individual tests or very small companies with easy load.
@@ -122,11 +123,8 @@ int main(int argc, char *argv[])
 	MonitorContainer monitors;
 	if( false == monitors.isInitialized()) return 1;
 	
-	// Message Queue initialization, but without thread start.
-	// Run cycle queue will read this messages itself.
-	af::MsgQueue msgQueue("RunMsgQueue");
-	if( false == msgQueue.isInitialized()) 
-	  return 1;
+	af::RenderUpdatetQueue rupQueue("RenderUpdatetQueue");
+	if( false == rupQueue.isInitialized()) return 1;
 
 	// Thread aruguments.
 	ThreadArgs threadArgs;
@@ -134,7 +132,7 @@ int main(int argc, char *argv[])
 	threadArgs.renders   = &renders;
 	threadArgs.users     = &users;
 	threadArgs.monitors  = &monitors;
-	threadArgs.msgQueue  = &msgQueue;
+	threadArgs.rupQueue  = &rupQueue;
 
 	/*
 	  Creating the afcommon object will actually create many message queues
@@ -157,7 +155,7 @@ int main(int argc, char *argv[])
 	{
 	AF_LOG << "Getting renders from store...";
 
-	std::vector<std::string> folders = AFCommon::getStoredFolders( ENV.getRendersDir());
+	std::vector<std::string> folders = AFCommon::getStoredFolders( ENV.getStoreFolderRenders());
 	AF_LOG << folders.size() << " renders found.";
 
 	for( int i = 0; i < folders.size(); i++)
@@ -180,7 +178,7 @@ int main(int argc, char *argv[])
 	{
 	AF_LOG << "Getting users from store...";
 
-	std::vector<std::string> folders = AFCommon::getStoredFolders( ENV.getUsersDir());
+	std::vector<std::string> folders = AFCommon::getStoredFolders( ENV.getStoreFolderUsers());
 	AF_LOG << folders.size() << " users found.";
 
 	for( int i = 0; i < folders.size(); i++)
@@ -204,8 +202,8 @@ int main(int argc, char *argv[])
 	{
 	AF_LOG << "Getting jobs from store...";
 
-	std::vector<std::string> folders = AFCommon::getStoredFolders( ENV.getJobsDir());
-	std::string sysjob_folder = AFCommon::getStoreDir( ENV.getJobsDir(), AFJOB::SYSJOB_ID, AFJOB::SYSJOB_NAME);
+	std::vector<std::string> folders = AFCommon::getStoredFolders( ENV.getStoreFolderJobs());
+	std::string sysjob_folder = AFCommon::getStoreDir( ENV.getStoreFolderJobs(), AFJOB::SYSJOB_ID, AFJOB::SYSJOB_NAME);
 
 	AF_LOG << folders.size() << " jobs found.";
 	for( int i = 0; i < folders.size(); i++)
@@ -233,7 +231,11 @@ int main(int argc, char *argv[])
 					continue;
 				}
 			}
-			jobs.job_register( job, &users, NULL);
+
+			std::string err;
+			jobs.registerJob( job, err, &users, NULL);
+			if( err.size())
+				AF_ERR << err;
 		}
 		else
 		{
@@ -256,8 +258,14 @@ int main(int argc, char *argv[])
 	if( hasSystemJob == false )
 	{
 		SysJob* job = new SysJob();
-		jobs.job_register( job, &users, NULL);
+
+		std::string err;
+		jobs.registerJob( job, err, &users, NULL);
+		if( err.size())
+			AF_ERR << err;
 	}
+
+	SocketsProcessing * socketsProcessing = new SocketsProcessing( &threadArgs);
 
 	/*
 	  Start the thread that is responsible of listening to the port
@@ -277,18 +285,23 @@ int main(int argc, char *argv[])
 		DlThread::Self()->Sleep( 1 );
 	}
 
-	//AF_LOG << "Waiting child threads.";
-	//alarm(1);
-	/*FIXME: Why we don`t need to join accent thread? */
-	//ServerAccept.Cancel();
+	AF_LOG << "Waiting child threads to exit...";
+	ServerAccept.Cancel();
+	// TODO: Make accept thread to finish and join it.
+	// Just Cancel(), close listening socket and Join() does not work.
+	//af::socketDisconnect( af::Environment::getServerPort());
+	//AF_LOG << "Waiting accept socket exit...";
 	//ServerAccept.Join();
 
-	//AF_LOG << "Waiting Run.";
 	// No need to chanel run cycle thread as
 	// every new cycle it checks running external valiable
 	RunCycleThread.Join();
 
+	delete socketsProcessing;
+
 	af::destroy();
+
+	AF_LOG << "Exiting process...";
 
 	return 0;
 }

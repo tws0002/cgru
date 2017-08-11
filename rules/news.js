@@ -195,16 +195,18 @@ function nw_Subscribe( i_path)
 			c_Error('Already subscribed on: ' + path);
 			return;
 		}
-		if( path.indexOf( i_path))
+		if( path.indexOf( i_path) != -1 )
 		{
-			c_Info('Already subscribed on parent path: ' + path);
+			c_Info('Already subscribed on sub-folder: ' + path);
 			return;
 		}
-		if( i_path.indexOf( path))
+		/*
+		if( i_path.indexOf( path) != -1 )
 		{
 			c_Info('Unsubscribing sub-path: ' + path);
 			continue;
 		}
+		*/
 		new_channels.push( g_auth_user.channels[i]);
 	}
 
@@ -239,7 +241,7 @@ function nw_Unsubscribe( i_path)
 	var obj = {};
 
 	obj.objects = [{"id":i_path}];
-	obj.delobj = true;
+	obj.delarray = 'channels';
 	obj.id = g_auth_user.id;
 	obj.file = 'users/' + g_auth_user.id + '.json';
 
@@ -301,6 +303,34 @@ function nw_MakeNews( i_news, i_args )
 	var request = nw_CreateNews( i_news);
 	nw_SendNews([request], i_args);
 }
+function nw_StatusesChanged( i_statuses)
+{
+	var news_requests = [];
+	var bookmarks = [];
+
+	for( var i = 0; i < i_statuses.length; i++)
+	{
+		var request = nw_CreateNews({"title":'status',"path":i_statuses[i].path,"artists":i_statuses[i].obj.artists});
+		if( request )
+			news_requests.push( request);
+
+		var bm = {};
+		bm.status = i_statuses[i].obj;
+		bm.path = i_statuses[i].path;
+		bookmarks.push( bm);
+	}
+
+	var obj = {};
+	obj.send = {};
+	obj.send.makenews = {};
+	obj.send.makenews.news_requests = news_requests;
+	obj.send.makenews.bookmarks = bookmarks;
+	obj.func = nw_MakeNewsFinished;
+	obj.args = {'func': bm_StatusesChanged};
+	obj.info = 'news statuses';
+
+	n_Request( obj);
+}
 function nw_CreateNews( i_news)
 {
 	if( i_news == null )
@@ -357,7 +387,7 @@ function nw_SendNews( i_requests, i_args)
 {
 	if( i_requests == null )
 	{
-		c_Error('Can`t send news from "null" request.');
+		c_Error('Can`t send news from "null" requests.');
 		return;
 	}
 	if( i_requests.length == 0 )
@@ -374,7 +404,7 @@ function nw_SendNews( i_requests, i_args)
 		}
 	}
 
-	n_Request({"send":{"makenews":i_requests},"func":nw_MakeNewsFinished,"args":i_args});
+	n_Request({'send':{'makenews':{'news_requests':i_requests}},'info':'news make','func':nw_MakeNewsFinished,'args':i_args});
 }
 function nw_MakeNewsFinished( i_data, i_args)
 {
@@ -402,24 +432,26 @@ function nw_MakeNewsFinished( i_data, i_args)
 	for( var i = 0; i < i_data.users.length; i++)
 		info += ' '+i_data.users[i];
 	c_Log( info);
+
+	if( i_args.args && i_args.args.func )
+		i_args.args.func( i_args.args);
 }
 
 function nw_ShowCount( i_hidden_count)
 {
-	if( g_auth_user && g_auth_user.news && g_auth_user.news.length )
+	if( g_auth_user == null )
+		return;
+
+	if( g_auth_user.news && g_auth_user.news.length )
 	{
 		var count = g_auth_user.news.length;
 		if( i_hidden_count )
 			count += '/' + (g_auth_user.news.length - i_hidden_count);
-		$('news_count').textContent = count;
-		$('news_count').style.display = 'block';
-		$('panel_logo').style.display = 'none';
+		$('news_label').textContent = 'News - ' + count;
 	}
 	else
 	{
-		$('news_count').style.display = 'none';
-		$('news_count').textContent = '';
-		$('panel_logo').style.display = 'block';
+		$('news_label').textContent = 'News';
 	}
 }
 
@@ -436,20 +468,27 @@ function nw_NewsLoad( i_refresh)
 
 	$('news').innerHTML = 'Loading...';
 	var filename = 'users/'+g_auth_user.id+'.json';
-	n_Request({"send":{"getfile":filename},"func":nw_NewsReceived,"info":"news"});
+	n_Request({'send':{'getobjects':{'file':filename,'objects':['news']}},'func':nw_NewsReceived,'info':'news'});
 }
 
-function nw_NewsReceived( i_user)
+function nw_NewsReceived( i_data)
 {
 //console.log('nw_NewsReceived()');
-	if( i_user == null ) return;
-	if( i_user.error )
+	if( i_data == null ) return;
+	if( i_data.error )
 	{
-		c_Error( i_user.error);
+		c_Error( i_data.error);
 		return;
 	}
 
-	g_auth_user.news = i_user.news;
+	var news = [];
+	if( i_data.news )
+		news = i_data.news;
+
+	g_auth_user.news = [];
+	for( var i = 0; i < news.length; i++)
+		if( news[i])
+			g_auth_user.news.push( news[i]);
 
 	nw_NewsShow();
 }
@@ -701,7 +740,7 @@ function nw_DeleteNews( i_ids)
 	obj.objects = [];
 	for( var i = 0; i < i_ids.length; i++ )
 		obj.objects.push({"id":i_ids[i]});
-	obj.delobj = true;
+	obj.delarray = 'news';
 
 	obj.file = 'users/'+g_auth_user.id+'.json';
 	n_Request({"send":{"editobj":obj},"func":nw_DeleteNewsFinished});

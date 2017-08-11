@@ -101,8 +101,6 @@ public:
 	inline void setParser(           const std::string & str    ) { m_parser           = str;   }
 /// Set block tasks working directory.
 	inline void setWDir(             const std::string & str    ) { m_working_directory             = str;   }
-/// Set block tasks extra environment.
-	inline void setEnv(              const std::string & str    ) { m_environment      = str;   }
 /// Set block tasks command.
 	inline void setCommand(          const std::string & str    ) { m_command          = str;   }
 /// Set block tasks veiw result command.
@@ -117,6 +115,8 @@ public:
 	inline void setMaxRunningTasks(     const int value  ) { m_max_running_tasks      = value; }
 /// Set maximum running tasks on the same host
 	inline void setMaxRunTasksPerHost(  const int value  ) { m_max_running_tasks_per_host   = value; }
+/// Set block tasks extra environment.
+	inline void setEnv( const std::string & i_name, const std::string & i_value) { m_environment[i_name] = i_value;}
 
 /// Set block tasks capacity.
 	bool setCapacity( int value);
@@ -148,8 +148,6 @@ public:
 	inline void setNeedPower(  int power  ) { m_need_power  = power; }
 	inline void setNeedHDD(    int hdd    ) { m_need_hdd    = hdd;   }
 
-	inline void setWorkingDirectory( const std::string & str) {  m_working_directory        = str;   }
-	inline void setEnvironment(      const std::string & str) {  m_environment = str;   }
 	inline void setCustomData( const std::string & str) {  m_custom_data  = str;  }
 	inline void setFileSizeCheck( long long min, long long max) { m_file_size_min = min; m_file_size_max = max; }
 
@@ -173,10 +171,11 @@ public:
 	inline const std::string & getCmd()          const { return m_command;             }  ///< Get command.
 	inline bool                hasTasksName()    const { return m_tasks_name.size();   }  ///< Whether block has tasks name.
 	inline const std::string & getTasksName()    const { return m_tasks_name;          }  ///< Get tasks name.
-	inline bool                hasEnvironment()  const { return m_environment.size();  }  ///< Whether extra environment is set.
-	inline const std::string & getEnvironment()  const { return m_environment;         }  ///< Get extra environment.
 	inline bool                hasFiles()        const { return m_files.size();        }  ///< Whether block has files.
 	inline const std::vector<std::string> & getFiles() const { return m_files;         }  ///< Get tasks files.
+	inline bool                hasEnvironment()  const { return m_environment.size();  }  ///< Whether extra environment is set.
+	inline const std::map<std::string, std::string> & getEnvironment()                    ///< Get extra environment.
+		const { return m_environment; }  
 
 	inline bool hasDependMask()         const { return m_depend_mask.notEmpty();        }  ///< Whether depend mask is set.
 	inline bool hasTasksDependMask()    const { return m_tasks_depend_mask.notEmpty();  }  ///< Whether block has tasks depend mask.
@@ -240,8 +239,11 @@ public:
 	inline int getErrorsForgiveTime()         const { return m_errors_forgive_time;          }
 	inline int getTaskProgressChangeTimeout() const { return m_task_progress_change_timeout; }
 
-	inline int * getRunningTasksCounter()      { return &m_running_tasks_counter;}
-	inline int   getRunningTasksNumber() const { return  m_running_tasks_counter;}
+	inline int32_t * getRunningTasksCounter()      { return &m_running_tasks_counter;}
+	inline int32_t   getRunningTasksNumber() const { return  m_running_tasks_counter;}
+
+	inline int64_t * getRunningCapacityCounter()      { return &m_running_capacity_counter;}
+	inline int64_t   getRunningCapacityTotal()  const { return  m_running_capacity_counter;}
 
 	bool updateProgress( JobProgress * progress);
 	inline const char * getProgressBar()          const { return p_progressbar;    }
@@ -275,6 +277,13 @@ public:
 	const std::string generateProgressString() const;
 	void stdOutProgress() const;
 
+
+	inline long long getTimeStarted()       const { return m_time_started;     }
+	inline long long getTimeDone()          const { return m_time_done;        }
+
+	void setTimeStarted(long long value, bool reset = false);
+	void setTimeDone(long long value);
+
 protected:
 	/// Read or write block.
 	virtual void v_readwrite( Msg * msg);
@@ -295,7 +304,8 @@ protected:
 	int64_t m_frames_inc;       ///< Tasks frames increment.
 	int64_t m_sequential;       ///< Tasks solve sequential.
 
-	int32_t  m_running_tasks_counter; ///< Number of running tasks counter.
+	int32_t m_running_tasks_counter;    ///< Number of running tasks counter.
+	int64_t m_running_capacity_counter; ///< Number of running tasks total capacity counter.
 
 	/// Maximum number of running tasks
 	int32_t m_max_running_tasks;
@@ -317,7 +327,7 @@ protected:
 	int32_t m_parser_coeff; ///< Parser koefficient.
 
 	std::string m_working_directory;        ///< Block tasks working directory.
-	std::string m_environment; ///< Block tasks extra environment.
+	std::map< std::string, std::string > m_environment; ///< Block tasks extra environment.
 
 	std::string m_command_pre;   ///< Pre command.
 	std::string m_command_post;  ///< Post command.
@@ -359,6 +369,9 @@ protected:
 	RegExp m_need_properties;
 
 	TaskData ** m_tasks_data;        ///< Tasks data pointer.
+
+	int64_t m_time_started;
+	int64_t m_time_done;
 
 private:
 	void initDefaults();  ///< Initialize default values

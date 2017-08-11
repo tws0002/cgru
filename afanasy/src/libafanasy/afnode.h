@@ -34,7 +34,6 @@ public:
 	inline const std::string & getAnnotation() const { return m_annotation; }
 	inline const std::string & getCustomData() const { return m_custom_data;}
 
-	friend class ::AfNodeSrv;
 	friend class ::AfContainer;
 	friend class ::AfList;
 
@@ -46,9 +45,11 @@ public:
 		FHidden = 1<<1
 	};
 
+	inline void setZombieFlag()  { m_flags = m_flags | FZombie; }
 	inline bool isZombie() const { return (m_flags & FZombie ); } ///< Whether a node is zombie.
 	inline bool isHidden() const { return (m_flags & FHidden ); } ///< Whether a node is hidden.
 	
+	inline void setLocked( bool i_lock) const { m_locked = i_lock; }
 	inline bool isLocked() const { return  m_locked; }
 	inline bool unLocked() const { return !m_locked; }
 	
@@ -56,12 +57,6 @@ public:
 	
 	virtual inline long long getTimeCreation() const { return 0; }
 	
-	//Solving:
-	enum SolvingMethod{
-		SolveByOrder     = 0,
-		SolveByPriority  = 1
-	};
-
 	void jsonRead( const JSON & i_object, std::string * io_changes = NULL, MonitorContainer * i_monitoring = NULL);
 	virtual void v_jsonWrite( std::ostringstream & o_str, int i_type) const;
 
@@ -70,6 +65,9 @@ public:
 protected:
 	virtual void v_readwrite( Msg * msg);   ///< Read or write node attributes in message
 
+	virtual void v_priorityChanged( MonitorContainer * i_monitoring);
+
+protected:
 /// Node id, unique for nodes of the same type. It is a position in container where node is stoted.
 	int32_t m_id;
 
@@ -92,9 +90,6 @@ protected:
 	std::string m_custom_data;
 
 private:
-/// Try to solve a node
-	virtual void v_priorityChanged( MonitorContainer * i_monitoring);
-
 	std::list<std::string> m_log; ///< Log.
 };
 }

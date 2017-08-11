@@ -2,7 +2,6 @@
 
 #include "../libafanasy/common/dlRWLock.h"
 
-#include "../libafanasy/afnode.h"
 #include "../libafanasy/msg.h"
 #include "../libafanasy/msgclasses/mcgeneral.h"
 
@@ -29,6 +28,8 @@ public:
 	/// Generate nodes message matching provided ids or mask:
 	af::Msg * generateList( int i_type, const std::string & i_type_name, const std::vector<int32_t> & i_ids, const std::string & i_mask, bool i_json);
 
+	const std::list<AfNodeSrv*> getNodesStdList();
+
 	bool setZombie( int id);
 
 	/// Free zombie nodes memory.
@@ -38,7 +39,7 @@ public:
 	void refresh( AfContainer * pointer, MonitorContainer * monitoring);
 
 	/// Perform an aciton:
-	void action( Action & i_action);
+	af::Msg * action( Action & i_action);
 
 	void ReadLock( void ) { m_rw_lock.ReadLock(); }
 	void WriteLock( void ) { m_rw_lock.WriteLock(); }
@@ -51,9 +52,6 @@ public:
 	friend class AfListIt;
 
 	inline int getCount() const { return m_count; }
-
-	/// Sort one node according to priority, called when priority attribute of any node changes.
-	void sortPriority( AfNodeSrv * i_node);
 
 protected:
 	int add( AfNodeSrv *node);   ///< Add node to container.

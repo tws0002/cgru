@@ -25,7 +25,7 @@
 		"":"@IP@  - will be replaced with render ip address:",
 
 	"OS_unix":{
-		"af_tempdirectory":"/var/tmp/afanasy",
+		"af_store_folder":"/var/tmp/afanasy",
 		"af_rendercmds":["vncviewer @ARG@","xterm -e \"ping @ARG@; read -s -n 1\"","xterm -e \"ping @IP@; read -s -n 1\""],
 		"af_rendercmds_admin":["xterm -e \"ssh @ARG@; read -s -n 1\"","xterm -e \"ssh @ARG@ \\\"@ASK@\\\"; read -s -n 1\""],
 		"":"Render:",
@@ -46,7 +46,7 @@
 	},
 	"OS_windows":{
 		"af_rendercmds":["vncviewer @ARG@","start ping /t @ARG@","start ping /t @IP@"],
-		"af_tempdirectory":"c:/temp/afanasy",
+		"af_store_folder":"c:/temp/afanasy",
 		"af_render_cmd_reboot":"shutdown /r",
 		"af_render_cmd_shutdown":"shutdown /s",
 		"af_render_cmd_wolsleep":"cmd.exe /c wolsleep",
@@ -69,11 +69,6 @@
 
 	"af_priority":99,
 	"af_maxrunningtasks":-1,
-
-	"af_serve_tasks_speed":-1,
-		"":"Server tasks solving speed limit (~tasks/second)",
-		"":"You can set this parameter to zero to pause job solving (see docs to reload config 'on-the-fly')",
-		"":"'-1' means unlimited.",
 
 "":"Job:",
 	"af_task_default_capacity":1000,
@@ -132,6 +127,10 @@
 		"":"If render will not send update its resources for this time(seconds),",
 		"":"server will put it in 'OFFLINE' state.",
 
+	"af_render_exit_no_task_time":-1,
+		"":"Program will exit if there will be no tasks for this time(seconds),",
+		"":"Negative value disables this feature",
+
 	"af_task_update_timeout":30,
 		"":"If task progress (state or percentage) has not been updated for this period,",
 		"":"It wiil considered as an error, and render will be push in error hosts list.",
@@ -173,9 +172,6 @@
 	"af_watch_get_events_sec":1,
 	"af_watch_refresh_gui_sec":5,
 	"af_watch_connectretries":3,
-	"af_watch_waitforconnected":8000,
-	"af_watch_waitforreadyread":8000,
-	"af_watch_waitforbyteswritten":8000,
 	"af_watch_render_idle_bar_max":3600,
 
 "":"Database:",
@@ -193,7 +189,17 @@
 	"af_sysjob_events_service":"events",
 
 "":"Network:",
-		"":"Use -1 value not to set socket option at all",
+	"":"Number of threads to read/write clients connections.",
+	"af_server_sockets_readwrite_threads_num":10,
+	"":"Number of threads to process clients connections.",
+	"af_server_sockets_processing_threads_num":10,
+
+	"":"Server sockets processing stack size.",
+	"-af_server_sockets_readwrite_threads_stack":32768,
+	"-af_server_sockets_processing_threads_stack":32768,
+		"":"Zero, negative value or no parameter means to use system default",
+
+	"":"Use -1 value not to set socket option at all",
 	"af_so_server_RCVTIMEO_sec":12,
 	"af_so_server_SNDTIMEO_sec":12,
 	"af_so_server_TCP_NODELAY":-1,
@@ -209,6 +215,10 @@
 	"af_so_client_LINGER":-1,
 
 "":"Solving:",
+	"af_solving_use_capacity":true,
+		"":"Calculate need using running tasks total capacity.",
+		"":"If not, use only running tasks number",
+
 	"af_solving_use_user_priority":true,
 		"":"Whether task solving takes user priority into account or not. If set on,",
 		"":"Jobs are sorted by user's priority first, then by job priority within a user.",
@@ -217,6 +227,15 @@
 	"af_solving_simpler":false,
 		"":"Use a simplified solving algorithm. No notion of 'need' is used: jobs are",
 		"":"sorted by priority first, and creation date then (older first).",
+
+	"af_solving_tasks_speed":-1,
+		"":"Server tasks solving speed limit (~tasks/second)",
+		"":"You can set this parameter to zero to pause job solving (see docs to reload config 'on-the-fly')",
+		"":"'-1' means unlimited.",
+
+	"af_solving_wake_per_cycle":1,
+		"":"Number of afrenders that can be waken per solve cycle (per second).",
+		"":"Zero or nagative value will disable Wake-On-Lan at all (in a default farm setup it is disabled).",
 
 	"":""
 }}

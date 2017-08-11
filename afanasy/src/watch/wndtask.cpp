@@ -422,6 +422,7 @@ void WndTask::showExec( af::MCTask & i_mctask)
 	af::Service service( exec);
 	QString wdir    = afqt::stoq( service.getWDir());
 	QString command = afqt::stoq( service.getCommand());
+	std::map<std::string,std::string> environment = exec->getEnv();
 	std::vector<std::string> files = service.getFiles();
 	std::vector<std::string> parsed_files = service.getParsedFiles();
 
@@ -447,14 +448,19 @@ void WndTask::showExec( af::MCTask & i_mctask)
 	c.insertText( ",", fInfo);
 	c.insertText( QString::number( exec->getFramesNum()), fParameter);
 	c.insertText( "):", fInfo);
-	c.insertText( "\n");
-	c.insertText( "Command:", fInfo);
-	c.insertText( "\n");
+
+	c.insertText("\nCommand:\n", fInfo);
 	c.insertText( command, fParameter);
-	c.insertText( "\n");
-	c.insertText( "Working Directory:", fInfo);
-	c.insertText( "\n");
+
+	c.insertText("\nWorking Directory:\n", fInfo);
 	c.insertText( wdir, fParameter);
+
+	if( environment.size())
+	{
+		c.insertText("\nEnvironment:\n", fInfo);
+		c.insertText( afqt::stoq( af::strJoin( environment)), fParameter);
+	}
+
 	if( files.size())
 	{
 		c.insertText( "\n");
@@ -503,9 +509,9 @@ void WndTask::showExec( af::MCTask & i_mctask)
 	#endif
 
 	if( parsed_files.size())
-		layout->addWidget( new QLabel("Preview Files (parsed):", m_tab_exec));
+		layout->addWidget( new QLabel("Files (parsed):", m_tab_exec));
 	else
-		layout->addWidget( new QLabel("Preview Files:", m_tab_exec));
+		layout->addWidget( new QLabel("Files:", m_tab_exec));
 	QHBoxLayout * layoutH = new QHBoxLayout();
 	QVBoxLayout * layoutL = new QVBoxLayout();
 	QVBoxLayout * layoutR = new QVBoxLayout();
@@ -520,7 +526,7 @@ void WndTask::showExec( af::MCTask & i_mctask)
 		fileField->setReadOnly(true);
 		fileField->setText( afqt::stoq( files[i]));
 
-		ButtonMenu * btnBrowse = new ButtonMenu( afqt::stoq( files[i]), wdir, m_tab_exec);
+		ButtonMenu * btnBrowse = new ButtonMenu( afqt::stoq( files[i]), wdir, exec->getEnv(), m_tab_exec);
 		layoutR->addWidget( btnBrowse);
 	}
 
@@ -532,8 +538,16 @@ void WndTask::showOutput( const af::MCTask & i_mctask)
 	m_tab_widget->setCurrentWidget( m_tab_output);
 
 	af::Service service( i_mctask.m_service, i_mctask.m_parser);
-	std::string html = service.toHTML( i_mctask.getOutput());
-	m_output_te->setHtml( afqt::stoq( html));
+
+	if( service.isInitialized() && service.hasParser())
+	{
+		std::string html = service.toHTML( i_mctask.getOutput());
+		m_output_te->setHtml( afqt::stoq( html));
+	}
+	else
+	{
+		m_output_te->setPlainText( afqt::stoq( i_mctask.getOutput()));
+	}
 }
 
 void WndTask::showLog( const af::MCTask & i_mctask)
@@ -568,17 +582,21 @@ void WndTask::showListen( const af::MCTask & i_mctask)
 }
 
 
-ButtonMenu::ButtonMenu( const QString & i_file, const QString & i_wdir, QWidget * i_parent):
+ButtonMenu::ButtonMenu( const QString & i_file, const QString & i_wdir,
+		const std::map<std::string,std::string> i_env, QWidget * i_parent):
 	QPushButton("Launch", i_parent),
 	m_file( i_file),
-	m_wdir( i_wdir)
+	m_wdir( i_wdir),
+	m_env( i_env)
 {
 	std::vector<std::string>::const_iterator it = af::Environment::getPreviewCmds().begin();
 	for( ; it != af::Environment::getPreviewCmds().end(); it++)
 	{
 		QString cmd( afqt::stoq(*it));
-		m_labels.append( cmd);
-		cmd = cmd.replace( AFWATCH::CMDS_ARGUMENT, m_file);
+		QStringList cmdSplit = cmd.split("|");
+		
+		m_labels.append( cmdSplit.first());
+		cmd = cmdSplit.last().replace( AFWATCH::CMDS_ARGUMENT, m_file);
 		m_cmds.append( cmd);
 	}
 
@@ -625,7 +643,7 @@ void ButtonMenu::launchCmd( int i_index)
 		return;
 	}
 	
-	Watch::startProcess( m_cmds[i_index], m_wdir);
+	Watch::startProcess( m_cmds[i_index], m_wdir, m_env);
 }
 
 

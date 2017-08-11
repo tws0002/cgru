@@ -14,7 +14,86 @@ cm_Attrs.push(['str',             'Starts',   'Starts Count']);
 cm_Attrs.push(['err',             'Errors',   'Errors Count']);
 cm_Attrs.push(['hst',             'Host',     'Host Name']);
 
+cm_UILevels = ['Padawan','Jedi','Sith'];
+
 var $ = function( id ) { return document.getElementById( id ); };
+
+function cm_Init()
+{
+	if( localStorage.ui_level == null )
+		localStorage.ui_level = cm_UILevels[0];
+
+	$('ui_level').m_elBtns = [];
+	for( var i = 0; i < cm_UILevels.length; i++)
+	{
+		var el = document.createElement('div');
+		$('ui_level').appendChild( el);
+		$('ui_level').m_elBtns.push( el);
+		el.textContent = cm_UILevels[i];
+		if( cm_UILevels[i] == localStorage.ui_level )
+		{
+			el.classList.add('current');
+			el.title = 'Current UI level.';
+		}
+		else
+		{
+			el.classList.add('button');
+			el.title = 'Double click to set ' + cm_UILevels[i] + ' UI level.';
+			el.ondblclick = function(e) {
+				cm_ApplyUILevel( e.currentTarget.textContent);
+			}
+		}
+	}
+}
+
+function cm_ApplyUILevel( i_level)
+{
+	for( var i = 0; i < $('ui_level').m_elBtns.length; i++)
+	{
+		var el = $('ui_level').m_elBtns[i];
+		el.classList.remove('button');
+		if( el.textContent != i_level )
+			el.style.display = 'none';
+	}
+
+	if( cm_UILevels.indexOf( i_level) == -1 )
+	{
+		g_Error('Invalid UI Level: ' + i_level);
+		return;
+	}
+
+	g_Info('UI level set: ' + i_level);
+
+	if( localStorage.ui_level == i_level )
+		return;
+
+	localStorage.ui_level = i_level;
+
+	var text = 'Powerful you have become, the dark side I sense in you.';
+	if( i_level == 'Padawan' )
+		text = 'Patience you must have, my young padawan.';
+	else if( i_level == 'Jedi' )
+		text = 'May the Force be with you.';
+	else
+		g_Info('Welcome to the Dark Side.');
+
+	var elB = document.createElement('div');
+	document.body.appendChild( elB);
+	elB.classList.add('ui_level_back');
+	var elT = document.createElement('div');
+	elB.appendChild( elT);
+	elT.classList.add('ui_level_text');
+	elT.textContent = text;
+
+	elB.onclick = function(e){ document.location.reload();}
+	elB.onkeydown = function(e){ document.location.reload();}
+	elT.onclick = function(e){ document.location.reload();}
+	elT.onkeydown = function(e){ document.location.reload();}
+	setTimeout( function(){ document.location.reload()}, 3000);
+}
+function cm_IsPadawan() { return cm_UILevels.indexOf( localStorage.ui_level) == 0;}
+function cm_IsJedi()    { return cm_UILevels.indexOf( localStorage.ui_level) == 1;}
+function cm_IsSith()    { return cm_UILevels.indexOf( localStorage.ui_level) == 2;}
 
 function cm_ApplyStyles()
 {
@@ -164,7 +243,7 @@ function cm_TimeStringFromSeconds( i_seconds, i_full)
 	}
 	else if( seconds )
 	{
-		str += seconds + 's ';
+		str += seconds + 's';
 	}
 
 	return str;
@@ -179,6 +258,38 @@ function cm_DateTimeStrFromMSec( i_sec, i_nosec)
 	if( i_nosec )
 		date = date.substr( 0, date.lastIndexOf(':'));
 	return date;
+}
+
+function cm_ToKMG( i_value, i_args)
+{
+	var lables = ['','K','M','G','T','P'];
+
+	if( i_args == null ) i_args = {};
+
+	var i_base = i_args.base;
+	var i_floats = i_args.floats;
+	var i_stripzeros = i_args.stripzeros;
+
+	if( i_base == null ) i_base = 1000.0;
+	if( i_floats == null ) i_floats = 1;
+	if( i_stripzeros == null ) i_stripzeros = true;
+
+	var th = 1, pow = 0;
+	while( th * i_base < i_value )
+	{
+		th *= i_base;
+		pow++;
+
+		if( pow == lables.length -1 )
+			break;
+	}
+
+	var str = ( i_value / th).toFixed( i_floats);
+	if( i_stripzeros )
+		str = str.replace(/\.0+/,'');
+	str += lables[pow];
+
+	return str;
 }
 
 cm_States = ['ONL','RDY','RUN','DON','WRN','ERR','SKP','OFF','WDP','WTM','DRT','NbY','NBY','PAU','PER','PBR','PSC','WFL','WSL','WWK','PPA','RER','WRC'];
@@ -217,7 +328,7 @@ function cm_ElCreateFloatText( i_elParent, i_side, i_title, i_text)
 		element.style.marginRight = '4px';
 
 	if( i_text )
-		element.textContent = i_text;
+		element.innerHTML = i_text;
 
 	return element;
 }

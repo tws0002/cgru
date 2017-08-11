@@ -83,10 +83,14 @@ af::Msg * threadProcessJSON( ThreadArgs * i_args, af::Msg * i_msg)
 				std::vector<int32_t> task_ids;
 				int number = 0;
 				int mon_id = 0;
+
 				af::jr_int32vec("block_ids", block_ids, getObj);
 				af::jr_int32vec("task_ids", task_ids, getObj);
 				af::jr_int("number", number, getObj);
-				af::jr_int("mon_id", mon_id, getObj);
+
+				// This request can be from afcmd, for example
+				bool has_monitor = af::jr_int("mon_id", mon_id, getObj);
+
 				if(( ids.size() == 1 ) && ( block_ids.size() == 1 ) && ( task_ids.size() == 1 ))
 				{
 					af::MCTask mctask( ids[0], block_ids[0], task_ids[0], number);
@@ -116,7 +120,7 @@ af::Msg * threadProcessJSON( ThreadArgs * i_args, af::Msg * i_msg)
 							delete [] data;
 						}
 					}
-					else if( mctask.m_render_id ) // Retrieving output from render
+					else if( mctask.m_render_id && has_monitor ) // Retrieving output from render
 					{
 						{
 							AfContainerLock rLock( i_args->renders, AfContainerLock::WRITELOCK);
@@ -154,13 +158,17 @@ af::Msg * threadProcessJSON( ThreadArgs * i_args, af::Msg * i_msg)
 									+ af::itos( mon_id);
 						}
 					}
+					else if( mctask.m_render_id && ( false == has_monitor ))
+					{
+						error = std::string("Can't get ouput of a running task.");
+					}
 	
 					if( o_msg_response == NULL )
 					{
 						if( error.empty())
-							error = "Error getting task ouput...\nSee server logs for details.";
+							error = "Failed to get task ouput...\nSee server logs for details.";
 
-						mctask.setOutput( error);
+						mctask.setOutput( std::string("ERROR: ") + error);
 
 						o_msg_response = mctask.generateMessage( binary);
 					}
@@ -209,8 +217,16 @@ af::Msg * threadProcessJSON( ThreadArgs * i_args, af::Msg * i_msg)
 				}
 
 				if( o_msg_response == NULL )
+				{
+					std::vector<int64_t> serials;
+					if( af::jr_int64vec("serials", serials, getObj))
+					{
+						ids = i_args->jobs->getIdsBySerials( serials);
+					}
+
 					o_msg_response = i_args->jobs->generateList(
 						full ? af::Msg::TJob : af::Msg::TJobsList, type, ids, mask, json);
+				}
 			}
 		}
 		else if( type == "renders")
@@ -317,6 +333,10 @@ af::Msg * threadProcessJSON( ThreadArgs * i_args, af::Msg * i_msg)
 		{
 			o_msg_response = af::jsonMsg( af::farm()->getText());
 		}
+		else if( type == "services_limits" )
+		{
+			o_msg_response = af::jsonMsg( af::farm()->jsonWriteLimits() );
+		}
 		else
 		{
 			o_msg_response = af::jsonMsgError(std::string("Invalid get type = '") + type + "'");
@@ -324,26 +344,23 @@ af::Msg * threadProcessJSON( ThreadArgs * i_args, af::Msg * i_msg)
 	}
 	else if( document.HasMember("action"))
 	{
-		i_args->msgQueue->pushMsg( i_msg);
-		// To not to detele it, set to NULL, as it pushed to another queue
-		i_msg = NULL;
-		o_msg_response = af::jsonMsgInfo("log","JSON message pushed to run queue.");
+		// This message for Run thread:
+		return NULL;
 	}
 	else if( document.HasMember("job"))
 	{
 		if( af::Environment::isDemoMode() )
 		{
-			AFCommon::QueueLogError("Job registration is not allowed: Server demo mode.");
+			std::string errlog = "Job registration is not allowed: Server demo mode.";
+			AFCommon::QueueLogError( errlog);
+			o_msg_response = af::jsonMsgError( errlog);
 		}
 		else
 		{
 			// No containers locks needed here.
 			// Job registration is a complex procedure.
 			// It locks and unlocks needed containers itself.
-			int id = i_args->jobs->job_register( new JobAf( document["job"]), i_args->users, i_args->monitors);
-			std::string str = "{\"id\":";
-			str += af::itos(id) + "}";
-			o_msg_response = af::jsonMsg( str);
+			o_msg_response = i_args->jobs->registerJob( document["job"], i_args->users, i_args->monitors);
 		}
 	}
 	else if( document.HasMember("monitor"))
@@ -367,25 +384,9 @@ af::Msg * threadProcessJSON( ThreadArgs * i_args, af::Msg * i_msg)
 		AfContainerLock mLock( i_args->monitors, AfContainerLock::WRITELOCK);
 		AfContainerLock rlock( i_args->renders,  AfContainerLock::WRITELOCK);
 
-		printf("\n	========= RELOADING FARM =========\n\n");
-		if( af::loadFarm( true))
-		{
-			RenderContainerIt rendersIt( i_args->renders);
-			for( RenderAf *render = rendersIt.render(); render != NULL; rendersIt.next(), render = rendersIt.render())
-			{
-				render->getFarmHost();
-				i_args->monitors->addEvent( af::Monitor::EVT_renders_change, render->getId());
-			}
-			printf("\n	========= FARM RELOADED SUCCESSFULLY =========\n\n");
-			o_msg_response = af::jsonMsgStatus( true, "reload_farm",
-				"Reloaded successfully.");
-		}
-		else
-		{
-			printf("\n	========= FARM RELOADING FAILED =========\n\n");
-			o_msg_response = af::jsonMsgStatus( false, "reload_farm",
-				"Failed, see server logs fo details. Check farm with \"afcmd fcheck\" at first.");
-		}
+		std::string status;
+		bool success = i_args->renders->farmLoad( status, i_args->monitors);
+		o_msg_response = af::jsonMsgStatus( success,"reload_farm", status);
 	}
 	else if( document.HasMember("reload_config"))
 	{
@@ -423,7 +424,6 @@ af::Msg * threadProcessJSON( ThreadArgs * i_args, af::Msg * i_msg)
 	}
 
 	delete [] data;
-	if( i_msg ) delete i_msg;
 
 	return o_msg_response;
 }

@@ -374,30 +374,20 @@ height:18px;
 #sidepanel .body { clear: both; display: none; }
 #sidepanel.opened .opened .body { display: block; }
 
-/* ============= NEWS: =============== */
-#news_count {
+#sidepanel > div .button.refresh {
 float: right;
-cursor: pointer;
-margin: 2px 8px;
-padding: 4px 4px;
-width: 60px;
-text-align: center;
-border: 1px solid rgba(98,98,98,.5);
-border-radius: 4px;
-box-shadow: 0 0 4px #030 inset, 0 0 8px #AFA;
-background: rgba(0,20,0,.5);
-color: #00FF00;
-text-shadow: 0 0 4px #00FF00, 0 0 8px #00FF00;
-font-weight: bold;
-font-family: monospace;
+width:18px; height:18px; 
+background-image: url(icons/refresh.png);
 display: none;
 }
-#sidepanel_news #news_refresh { display: none; float: right; }
+#sidepanel.opened > div.opened .button.refresh { display: block; }
+
+
+/* ============= NEWS: =============== */
 #sidepanel_news.news_ignore_own { background-color: rgba(200,100,0,.3); }
 #sidepanel_news.news_disabled   { background-color: rgba(200,  0,0,.3); }
-#sidepanel.opened #sidepanel_news.opened #news_refresh { display: block; }
-.news_ctrl { margin: 2px; padding: 2px; }
-.news_ctrl_btns .button { font-size: 14px; width: 20px; height: 20px; float: left; margin: 1px 4px; padding: 0; }
+#news_ctrl { margin: 2px; padding: 2px; }
+#news_ctrl_btns .button { font-size: 14px; width: 20px; height: 20px; float: left; margin: 1px 4px; padding: 0; }
 #chanset .button { float: left; width: 16px; height: 16px; }
 #sidepanel_news.news_disabled   #news_disable    { background-color: #FF0000; }
 #sidepanel_news.news_ignore_own #news_ignore_own { background-color: #FF9900; }
@@ -435,9 +425,68 @@ width: 32px;
 height: 32px;
 margin: 0 0 0 2px;
 }
+
+
+/* ============= BOOKMARKS: =============== */
+#bookmarks_ctrl {
+margin: 2px; padding: 2px;
+}
+#bookmarks_ctrl .button {
+float: left;
+font-size: 14px;
+margin: 0px 2px;
+}
+#bookmarks .project {
+border-top: 2px solid rgba(98,98,98,.5);
+padding: 4px 0;
+}
+#bookmarks .project.closed .bookmark {
+display: none;
+}
+#bookmarks .project .label {
+text-align: center;
+font-size: 14px;
+cursor: pointer;
+}
+#bookmarks .project .label:hover {
+text-shadow: 0 0 2px rgba( 100, 255, 255, .5);
+}
+#bookmarks .project.closed .label {
+font-style: italic;
+}
+#bookmarks .bookmark {
+position: relative;
+border-top: 1px solid rgba(98,98,98,.5);
+font-size: 12px;
+padding: 4px 0;
+}
+#bookmarks .bookmark a {
+padding: 0 4px;
+}
+#bookmarks .bookmark img {
+width: 100%;
+}
+#bookmarks .bookmark .bar {
+position: absolute;
+bottom: 1px;
+left: 0px;
+height: 4px;
+background-color: rgba(0,200,0,.5);
+opacity: 0.5;
+}
+#bookmarks .bookmark.cur_path { background: rgba( 100, 255, 255, .2); }
+#bookmarks .bookmark .button.delete {
+display: none;
+float: right;
+width: 14px;
+height: 14px;
+}
+#bookmarks .bookmark.obsolete .button.delete {
+display: block;
+}
+
+
 /* ============= RECENT: =============== */
-#sidepanel_recent #recent_refresh { display: none; float:right; }
-#sidepanel.opened #sidepanel_recent.opened #recent_refresh { display: block; }
 #recent { }
 #recent .recent { font-size: 12px; border-top: 1px solid rgba(98,98,98,.5); position: relative; }
 #recent .recent > div { margin: 2px 4px; }
@@ -452,9 +501,8 @@ border-radius: 0 0 0 4px;
 }
 #recent .user { float: left; margin-right: 4px;}
 
+
 /* ============= PLAYLIST: =============== */
-#sidepanel_playlist #playlist_refresh { display: none; float:right; }
-#sidepanel.opened #sidepanel_playlist.opened #playlist_refresh { display: block; }
 .playlist_ctrl { padding-left: 6px; }
 .playlist_ctrl .button { float: left; padding: 0; }
 .playlist_ctrl_top { border-bottom: 1px solid rgba(98,98,98,.5); }

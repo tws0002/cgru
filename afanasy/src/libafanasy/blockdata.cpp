@@ -80,6 +80,8 @@ void BlockData::initDefaults()
 	m_multihost_max_wait = 0;
 	m_multihost_service_wait = 0;
 	m_parser_coeff = 1;
+	m_time_started = 0;
+	m_time_done    = 0;
 
 	p_percentage     = 0;
 	p_error_hosts    = 0;
@@ -115,6 +117,7 @@ void BlockData::construct()
    m_tasks_num = 0;
    m_tasks_data = NULL;
    m_running_tasks_counter = 0;
+   m_running_capacity_counter = 0;
 
    m_depend_mask.setCaseSensitive();
    m_tasks_depend_mask.setCaseSensitive();
@@ -171,9 +174,11 @@ void BlockData::jsonRead( const JSON & i_object, std::string * io_changes)
 	jr_int32 ("max_running_tasks",          m_max_running_tasks,          i_object, io_changes);
 	jr_int32 ("max_running_tasks_per_host", m_max_running_tasks_per_host, i_object, io_changes);
 	jr_string("custom_data",           m_custom_data,           i_object, io_changes);
-	//jr_string("environment",         m_environment,           i_object, io_changes);
 	jr_int32 ("parser_coeff",          m_parser_coeff,          i_object, io_changes);
 	jr_int64 ("sequential",            m_sequential,            i_object, io_changes);
+	jr_int64 ("time_started",          m_time_started,          i_object, io_changes);
+	jr_int64 ("time_done",             m_time_done,             i_object, io_changes);
+	jr_stringmap("environment",        m_environment,           i_object, io_changes);
 
 
 	if( m_capacity < 1 )
@@ -346,7 +351,8 @@ void BlockData::jsonWrite( std::ostringstream & o_str, int i_type) const
             o_str << ",\n\"multihost_service\":\"" << m_multihost_service         << "\"";
 		if( m_custom_data.size())
 	        o_str << ",\n\"custom_data\":\""       << m_custom_data               << "\"";
-        //o_str << ",\n\"environment\":\""         << m_environment               << "\"";
+		if( m_environment.size())
+			af::jw_stringmap("environment", m_environment, o_str);
         //o_str << ",\n\"parser_coeff\":\:"        << m_parser_coeff              << "\"";
         o_str << ',';
 
@@ -384,6 +390,10 @@ void BlockData::jsonWrite( std::ostringstream & o_str, int i_type) const
 			o_str << ",\n\"file_size_min\":" << m_file_size_min;
 		if( m_file_size_max > 0 )
 			o_str << ",\n\"file_size_max\":" << m_file_size_max;
+		if( m_time_started > 0 )
+			o_str << ",\n\"time_started\":" << m_time_started;
+		if( m_time_done > 0 )
+			o_str << ",\n\"time_done\":" << m_time_done;
 		if( m_max_running_tasks != -1 )
 			o_str << ",\n\"max_running_tasks\":"          << m_max_running_tasks;
 		if( m_max_running_tasks_per_host != -1 )
@@ -434,8 +444,11 @@ void BlockData::jsonWrite( std::ostringstream & o_str, int i_type) const
 		}
 		if( m_job_id != 0 )
             o_str << ",\n\"job_id\":" << m_job_id;
+
 		if( m_running_tasks_counter > 0 )
             o_str << ",\n\"running_tasks_counter\":" << m_running_tasks_counter;
+		if( m_running_capacity_counter > 0 )
+            o_str << ",\n\"running_capacity_total\":" << m_running_capacity_counter;
 
 		if( p_percentage > 0 )
             o_str << ",\n\"p_percentage\":"     << int(p_percentage);
@@ -540,13 +553,15 @@ void BlockData::v_readwrite( Msg * msg)
 		rw_String  ( m_tasks_name,            msg);
 		rw_String  ( m_parser,                msg);
 		rw_String  ( m_working_directory,     msg);
-		rw_String  ( m_environment,           msg);
 		rw_String  ( m_command,               msg);
 		rw_String  ( m_command_pre,           msg);
 		rw_String  ( m_command_post,          msg);
 		rw_String  ( m_multihost_service,     msg);
 		rw_String  ( m_custom_data,           msg);
 		rw_StringVect ( m_files,              msg);
+		rw_StringMap  ( m_environment,        msg);
+		rw_int64_t ( m_time_started,          msg);
+		rw_int64_t ( m_time_done,             msg);
 
 	case Msg::TJobsList:
 		rw_int64_t ( m_flags,                        msg);
@@ -583,24 +598,33 @@ void BlockData::v_readwrite( Msg * msg)
 		rw_int32_t ( m_errors_forgive_time,          msg);
 		rw_int32_t ( m_task_progress_change_timeout, msg);
 		rw_uint32_t( m_tasks_max_run_time,           msg);
+		rw_int64_t ( m_time_started,                 msg);
+		rw_int64_t ( m_time_done,                    msg);
 
 	case Msg::TBlocksProgress:
 
-		rw_int32_t ( m_running_tasks_counter, msg);
-		rw_uint8_t ( p_percentage,            msg);
-		rw_int32_t ( p_error_hosts,           msg);
-		rw_int32_t ( p_avoid_hosts,           msg);
-		rw_int32_t ( p_tasks_ready,           msg);
-		rw_int32_t ( p_tasks_done,            msg);
-		rw_int32_t ( p_tasks_error,           msg);
-		rw_int32_t ( p_tasks_skipped,         msg);
-		rw_int32_t ( p_tasks_warning,         msg);
-		rw_int32_t ( p_tasks_waitrec,         msg);
-		rw_int64_t ( p_tasks_run_time,        msg);
+		rw_int32_t ( m_running_tasks_counter,    msg);
 
-		rw_int64_t ( m_state,                 msg);
-		rw_int32_t ( m_job_id,                msg);
-		rw_int32_t ( m_block_num,             msg);
+		/* NEW VERSION
+		rw_int64_t ( m_running_capacity_counter, msg);
+		*/
+
+		rw_uint8_t ( p_percentage,     msg);
+		rw_int32_t ( p_error_hosts,    msg);
+		rw_int32_t ( p_avoid_hosts,    msg);
+		rw_int32_t ( p_tasks_ready,    msg);
+		rw_int32_t ( p_tasks_done,     msg);
+		rw_int32_t ( p_tasks_error,    msg);
+		rw_int32_t ( p_tasks_skipped,  msg);
+		rw_int32_t ( p_tasks_warning,  msg);
+		rw_int32_t ( p_tasks_waitrec,  msg);
+		rw_int64_t ( p_tasks_run_time, msg);
+
+		rw_int64_t ( m_state,     msg);
+		rw_int32_t ( m_job_id,    msg);
+		rw_int32_t ( m_block_num, msg);
+		rw_int64_t ( m_time_started, msg);
+		rw_int64_t ( m_time_done,    msg);
 
 		rw_data( p_progressbar, msg, AFJOB::ASCII_PROGRESS_LENGTH);
 
@@ -1058,7 +1082,7 @@ int BlockData::getReadyTaskNumber( TaskProgress ** i_tp, const int64_t & i_job_f
 		bool nodivision_needed = false;
 		if( powered >= m_tasks_num )
 		{
-			bool nodivision_needed = true;
+			nodivision_needed = true;
 			powered = m_tasks_num;
 		}
 
@@ -1310,13 +1334,15 @@ void BlockData::generateInfoStreamTyped( std::ostringstream & o_str, int type, b
 
       if( full || ( ! m_parser.empty())) o_str << "\n Parser = " << m_parser;
       if( full && (   m_parser.empty())) o_str << " is empty (no parser)";
+
+      if( full && m_command_post.size()) o_str << "\n Post Command:\n" << m_command_post;
+
+      if( full && m_environment.size()) o_str << "\n Environment: " << af::strJoin( m_environment);
 /*
       if( false == m_working_directory.empty()) o_str << "\n Working Directory:\n" << m_working_directory;
       if( false == m_command.empty()) o_str << "\n Command:\n" << m_command;
-      if( false == m_environment.empty()) o_str << "\n Environment = " << m_environment;
       if( false == m_files.empty()) o_str << "\n Files:\n" << af::strReplace( m_files, ';', '\n');
       if( false == m_command_pre.empty()) o_str << "\n Pre Command:\n" << m_command_pre;
-      if( false == m_command_post.empty()) o_str << "\n Post Command:\n" << m_command_post;
       if( false == m_custom_data.empty()) o_str << "\n Custom Data:\n" << m_custom_data;
 */
 //      break;
@@ -1386,6 +1412,11 @@ void BlockData::generateInfoStreamTyped( std::ostringstream & o_str, int type, b
       if( full ) o_str << "\n Tasks Skipped = " << p_tasks_skipped;
       if( full ) o_str << "\n Tasks Warning = " << p_tasks_warning;
       if( full ) o_str << "\n Tasks Wait Reconnect = " << p_tasks_waitrec;
+
+      static const char timeformat[] = "%Y.%m.%d %H:%M.%S";
+
+      if( full && (m_time_started > 0) ) o_str << "\n Start time = " << af::time2str( m_time_started, timeformat );
+      if( full && (m_time_done > 0) ) o_str << "\n Done time = " << af::time2str( m_time_done, timeformat );
 
       if( p_error_hosts ) o_str << "\n Error hosts count = " << p_error_hosts;
       if( p_avoid_hosts ) o_str << "\n Avoid hosts count = " << p_avoid_hosts;
@@ -1511,7 +1542,11 @@ bool BlockData::updateProgress( JobProgress * progress)
 		m_state = m_state | AFJOB::STATE_RUNNING_MASK;
 
 	if( new_tasks_done == m_tasks_num )
+	{
+		if (m_time_done == 0)
+			m_time_done = time(NULL);
 		m_state = m_state | AFJOB::STATE_DONE_MASK;
+	}
 
 	if( new_tasks_warning )
 		m_state = m_state | AFJOB::STATE_WARNING_MASK;
@@ -1577,4 +1612,19 @@ void BlockData::generateProgressStream( std::ostringstream & o_str) const
 {
 	o_str << std::string( p_progressbar, AFJOB::ASCII_PROGRESS_LENGTH);
 	o_str << std::endl;
+}
+
+
+void BlockData::setTimeStarted(long long value, bool reset) 
+{ 
+	if (m_time_started == 0)
+		m_time_started = value;
+
+	if (reset == true)
+		m_time_started = value;
+}
+
+void BlockData::setTimeDone(long long value) 
+{ 
+	m_time_done = value;
 }

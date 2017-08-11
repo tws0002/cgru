@@ -79,7 +79,7 @@ public:
 	af::Msg * update( const af::RenderUpdate & i_up);
 
 	// Called directly from solve cycle if it was not solved.
-	void notSolved();
+	void solvingFinished();
 
 	// Need for server to write some farm parameters (gui double-click):
 	af::Msg * writeFullInfo( bool binary) const;
@@ -127,8 +127,6 @@ private:
 	void wolSleep( MonitorContainer * monitoring);
 
 	void appendTasksLog( const std::string & message);  ///< Append tasks log with a \c message .
-
-	virtual void v_priorityChanged( MonitorContainer * i_monitoring);
 
 private:
 	std::string m_farm_host_name;

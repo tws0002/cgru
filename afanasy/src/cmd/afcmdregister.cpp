@@ -31,20 +31,19 @@
 void AfCmd::RegisterCommands()
 {
 	addCmd( new CmdVerbose);
-	addCmd( new CmdProtocol);
-	addCmd( new CmdServerName);
-	addCmd( new CmdServerPort);
 	addCmd( new CmdHelp);
 #ifndef WINNT
 	addCmd( new CmdFork);
 #endif
 
 	addCmd( new CmdText);
-	addCmd( new CmdTest);
 	addCmd( new CmdTextGenerate);
 	addCmd( new CmdConfirm);
 	addCmd( new CmdRegExp);
 	addCmd( new CmdInvalid);
+
+	addCmd( new CmdTestMsg);
+	addCmd( new CmdTestThreads);
 
 	addCmd( new CmdMonitorList);
 	addCmd( new CmdMonitorLog);

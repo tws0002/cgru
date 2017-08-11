@@ -552,6 +552,12 @@ function ad_WndDrawUsers()
 
 	var el = document.createElement('th');
 	elTr.appendChild( el);
+	el.textContent = 'Bmrs';
+	el.title = 'Bookmarks count.\nDouble click clear bookmarks.';
+	el.onclick = function(e) { ad_WndSortUsers('bookmarks'); };
+
+	var el = document.createElement('th');
+	elTr.appendChild( el);
 	el.textContent = 'Cnls';
 	el.title = 'News subscribed channels.\nDouble click clear channels.';
 	el.onclick = function(e) { ad_WndSortUsers('channels'); };
@@ -784,6 +790,14 @@ function ad_WndAddUser( i_el, i_user, i_row)
 
 	var el = document.createElement('td');
 	elTr.appendChild( el);
+	if( i_user.bookmarks )
+		el.textContent = i_user.bookmarks.length;
+	el.m_user_id = i_user.id;
+	if( i_user.disabled !== true )
+		el.ondblclick = function(e){ad_UserBookmakrsClean( e.currentTarget.m_user_id);};
+
+	var el = document.createElement('td');
+	elTr.appendChild( el);
 	if( i_user.channels )
 		el.textContent = i_user.channels.length;
 	if( i_user.channels && i_user.channels.length )
@@ -996,6 +1010,10 @@ function ad_ChangeEmail( i_email, i_user_id)
 {
 	ad_SaveUser({"id":i_user_id,"email":i_email}, ad_WndRefresh);
 }
+function ad_UserBookmakrsClean( i_user_id)
+{
+	ad_SaveUser({"id":i_user_id,"bookmarks":[]}, ad_WndRefresh);
+}
 function ad_UserChannelsClean( i_user_id)
 {
 	ad_SaveUser({"id":i_user_id,"channels":[]}, ad_WndRefresh);
@@ -1105,6 +1123,7 @@ function ad_DisableUser( i_user_id)
 	uobj.disabled = true;
 	delete uobj.news;
 	delete uobj.channels;
+	delete uobj.bookmarks;
 
 	n_Request({"send":{"disableuser":{"uid":i_user_id,"uobj":uobj}},"func":ad_ChangesFinished,
 			"ad_func":ad_WndRefresh,"ad_msg":'User "'+i_user_id+'" disabled.'});

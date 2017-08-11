@@ -2,8 +2,7 @@
 
 #include "../libafanasy/msgclasses/msgclassuserhost.h"
 
-#include "../libafqt/qthreadclientsend.h"
-#include "../libafqt/qthreadclientup.h"
+#include "../libafqt/qafclient.h"
 
 #include "infoline.h"
 #include "labelversion.h"
@@ -14,6 +13,7 @@
 #include <QBoxLayout>
 #include <QLabel>
 #include <QListWidget>
+#include <QMainWindow>
 #include <QWidget>
 
 class ButtonOut;
@@ -26,7 +26,7 @@ class QHBoxLayout;
 class QVBoxLayout;
 class QScrollArea;
 
-class Dialog : public QWidget
+class Dialog : public QMainWindow
 {
     Q_OBJECT
 
@@ -58,6 +58,11 @@ signals:
     void stop();
 
 private slots:
+	void showMenuLevel();
+	void showMenuTheme();
+	void showMenuPrefs();
+	void showMenuHelp();
+
     void newMessage( af::Msg * msg);
     void connectionLost();
     void repaintWatch();
@@ -70,7 +75,10 @@ private slots:
     void actSaveWndRectsOnExit();
     void actSavePreferences();
     void actShowOfflineNoise();
-    void actGuiTheme( QString theme);
+	void actGuiTheme( QString theme);
+    void actGuiLevel( int i_level);
+	void actShowDocs();
+	void actShowForum();
 
 protected:
     void contextMenuEvent( QContextMenuEvent * event);
@@ -78,6 +86,8 @@ protected:
     void paintEvent ( QPaintEvent * event );
 
 private:
+	void createMenus();
+
     void sendRegister();
 	void idReceived( int i_id, int i_uid = -1);
     void closeList();
@@ -85,13 +95,18 @@ private:
     void setDefaultWindowTitle();
 
 private:
+	QMenu * m_contextMenu;
+	QMenu * m_levelMenu;
+	QMenu * m_themeMenu;
+	QMenu * m_prefsMenu;
+	QMenu * m_helpMenu;
+
     bool m_initialized;
     bool m_connected;
 
     int m_monitorType;
 
-    afqt::QThreadClientUp   m_qThreadClientUpdate;
-    afqt::QThreadClientSend m_qThreadSend;
+	afqt::QAfClient m_qafclient;
 
     ListItems * m_listitems;
     OfflineScreen * m_offlinescreen;

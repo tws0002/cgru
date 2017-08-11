@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../include/afgui.h"
+
+#include "../libafqt/qenvironment.h"
 #include "../libafqt/name_afqt.h"
 
 #include <QtCore/QLinkedList>
@@ -38,6 +41,12 @@ public:
 		WLAST
 	};
 
+	static bool isPadawan()  { return afqt::QEnvironment::level.n == AFGUI::PADAWAN; }
+	static bool notPadawan() { return afqt::QEnvironment::level.n != AFGUI::PADAWAN; }
+	static bool isJedi( )    { return afqt::QEnvironment::level.n == AFGUI::JEDI;    }
+	static bool isSith()     { return afqt::QEnvironment::level.n == AFGUI::SITH;    }
+	static bool notSith()    { return afqt::QEnvironment::level.n != AFGUI::SITH;    }
+
 	static const QString BtnName[WLAST];
 	static const QString WndName[WLAST];
 
@@ -72,6 +81,9 @@ public:
 	static void displayWarning( const QString &message);
 	static void displayError(   const QString &message);
 
+	static void showDocs();
+	static void showForum();
+
 	static bool openMonitor( int type, bool open);
 
 	static void listenJob(  int id, const QString & name);
@@ -95,7 +107,9 @@ public:
 	static void repaintStart();
 	static void repaintFinish();
 
-	static void startProcess( const QString & cmd, const QString & wdir = QString());
+	static void startProcess( const QString & i_cmd,
+			const QString & i_wdir = QString(),
+			const std::map<std::string,std::string> & i_env_map = std::map<std::string,std::string>());
 
 	inline static const QPixmap * getServiceIconLarge( const QString & service_name) { return ms_services_icons_large.value( service_name, NULL);}
 	inline static const QPixmap * getServiceIconSmall( const QString & service_name) { return ms_services_icons_small.value( service_name, NULL);}
@@ -107,7 +121,7 @@ public:
 	void static browseImages( const QString & i_image,  const QString & i_wdir);
 	void static browseFolder( const QString & i_folder, const QString & i_wdir = QString());
 
-	void static notify( const QString & i_title, const QString & i_msg, uint32_t i_state = 0);
+	void static notify( const QString & i_title, const QString & i_msg = QString(), uint32_t i_state = 0);
 
 private:
 	static Dialog * ms_d;
@@ -115,9 +129,6 @@ private:
 
 	static QLinkedList<Wnd*> ms_windows;
 	static QLinkedList<Receiver*> ms_receivers;
-
-	static QStringList ms_previewcmds;
-	static QStringList ms_rendercmds;
 
 	static QLinkedList<int> ms_listenjobids;
 	static QLinkedList<int> ms_watchtasksjobids;

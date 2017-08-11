@@ -50,12 +50,14 @@ private slots:
 
 	void actBlockCommand();
 	void actBlockWorkingDir();
+	void actBlockEnvironment();
 	void actBlockFiles();
 	void actBlockCmdPost();
 	void actBlockService();
 	void actBlockParser();
 
 	void blockAction( int id_block, QString i_action);
+	void actBlockPreview( int num_cmd, int num_img);
 
 	void actTaskOpen();
 	void actTaskPreview( int num_cmd, int num_img);

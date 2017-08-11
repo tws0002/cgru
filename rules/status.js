@@ -1176,8 +1176,12 @@ Status.prototype.editSave = function( i_args)
 		artists = {};
 		var elList = this.elEdit.artists;
 		for( var i = 0; i < elList.length; i++)
+		{
 			if( elList[i].m_selected )
 				artists[elList[i].m_item] = 'selected';
+			else if( elList[i].m_half_selected )
+				artists[elList[i].m_item] = 'half_selected';
+		}
 	}
 
 	if( this.elEdit.flags )
@@ -1185,8 +1189,12 @@ Status.prototype.editSave = function( i_args)
 		flags = {};
 		var elList = this.elEdit.flags;
 		for( var i = 0; i < elList.length; i++)
+		{
 			if( elList[i].m_selected )
 				flags[elList[i].m_item] = 'selected';
+			else if( elList[i].m_half_selected )
+				flags[elList[i].m_item] = 'half_selected';
+		}
 	}
 
 	if( this.elEdit.tags )
@@ -1194,8 +1202,12 @@ Status.prototype.editSave = function( i_args)
 		tags = {};
 		var elList = this.elEdit.tags;
 		for( var i = 0; i < elList.length; i++)
+		{
 			if( elList[i].m_selected )
 				tags[elList[i].m_item] = 'selected';
+			else if( elList[i].m_half_selected )
+				tags[elList[i].m_item] = 'half_selected';
+		}
 	}
 
 	if( this.elEdit_tasks.elTasks )
@@ -1260,7 +1272,7 @@ Status.prototype.editSave = function( i_args)
 	// Set values to statuses
 	var some_progress_changed = false;
 	var progresses = {};
-	var news = [];
+
 	for( var i = 0; i < statuses.length; i++)
 	{
 		if( statuses[i].obj == null ) statuses[i].obj = {};
@@ -1406,16 +1418,14 @@ Status.prototype.editSave = function( i_args)
 		if( this.elEdit_Color.m_color_changed )
 			statuses[i].obj.color = this.elEdit_Color.m_color;
 
-		// Status saving produce news.
-		news.push( statuses[i].save());
-
-		// Status showing causes values redraw,
-		// and destoys edit GUI if any.
+		statuses[i].save();
 		statuses[i].show();
+		//^ Status showing causes values redraw,
+		// and destoys edit GUI if any.
 	}
 
-	// Send news:
-	nw_SendNews( news);
+	// News & Bookmarks:
+	nw_StatusesChanged( statuses);
 
 	if( some_progress_changed )
 		st_UpdateProgresses( this.path, progresses);
@@ -1428,8 +1438,10 @@ Status.prototype.save = function()
 	this.obj.muser = g_auth_user.id;
 	this.obj.mtime = c_DT_CurSeconds();
 
+	if( this.path == g_CurPath())
+		RULES.status = this.obj;
+
 	st_Save( this.obj, this.path);
-	return nw_CreateNews({"title":'status',"path":this.path,"artists":this.obj.artists});
 }
 
 function st_Save( i_status, i_path, i_func, i_args, i_navig_params_update)
@@ -1460,7 +1472,6 @@ function st_SetFramesNumber( i_num)
 	st_Show( RULES.status);
 
 	$('status_framesnum_div').classList.add('updated');
-	$('status_framesnum_div').title = 'Frames number updated\nPrevous value: ' + RULES.status.frames_num;
 }
 
 function st_SetTimeCode( i_tc)
@@ -1501,8 +1512,6 @@ function st_SetTimeCode( i_tc)
 	}
 	var timecode_finish = c_TC_FromFrame( frame_finish);
 
-//console.log( timecode_start + ' - ' + timecode_finish + ' = ' + frames_num);
-
 	if( RULES.status == null ) RULES.status = {};
 
 	if(( RULES.status.timecode_start == timecode_start ) && ( RULES.status.timecode_finish == timecode_finish ))
@@ -1510,7 +1519,23 @@ function st_SetTimeCode( i_tc)
 
 	RULES.status.timecode_start = timecode_start;
 	RULES.status.timecode_finish = timecode_finish;
-	st_Save({'timecode_start':timecode_start,'timecode_finish':timecode_finish}, null, null, null, {});
+
+	var save_fields = {};
+	save_fields.timecode_start = timecode_start;
+	save_fields.timecode_finish = timecode_finish;
+
+	var navig_params_update = {};
+		
+	if(( RULES.status.frames_num == null ) || ( RULES.status.frames_num <= 0 ))
+	{
+		RULES.status.frames_num = frames_num;
+		save_fields.frames_num = frames_num;
+		navig_params_update.frames_num = true;
+
+		st_SetElFramesNum( RULES.status, $('status_framesnum'));
+	}
+
+	st_Save( save_fields, null, null, null, navig_params_update);
 }
 
 function st_UpdateProgresses( i_path, i_progresses)
@@ -1570,7 +1595,7 @@ function st_UpdateProgressesWalkReceived( i_walks, i_args)
 			var folder = i_walks[w].folders[f];
 
 			if( folder.name == RULES.rufolder ) continue;
-			if( c_AuxFolder( folder.name)) continue;
+			if( c_AuxFolder( folder)) continue;
 
 			var path = paths[w] + '/' + folder.name;
 			if(( progresses[path] != null ) && ( progresses[path] != -1 ))

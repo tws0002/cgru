@@ -19,11 +19,13 @@
 
 #include "../libafanasy/environment.h"
 
+#include "socketsprocessing.h"
 #include "threadargs.h"
 
 #define AFOUTPUT
 #undef AFOUTPUT
 #include "../include/macrooutput.h"
+#include "../libafanasy/logger.h"
 
 extern bool AFRunning;
 
@@ -154,8 +156,6 @@ void threadAcceptPort( void * i_arg, int i_port)
 
 	printf( "Listening %d port...\n", af::Environment::getServerPort());
 
-	DlThread process_one_client;
-
 	//
 	//############ accepting client connections:
 
@@ -170,15 +170,11 @@ void threadAcceptPort( void * i_arg, int i_port)
 
 	while( AFRunning )
 	{
-		ThreadArgs * newThreadArgs = new ThreadArgs(*threadArgs);
-		socklen_t client_sockaddr_len = sizeof(newThreadArgs->ss);
+		struct sockaddr_storage * sas = new sockaddr_storage;
+		socklen_t client_sockaddr_len = sizeof(*sas);
+		int sfd = accept( server_sd, (struct sockaddr*)(sas), &client_sockaddr_len);
 
-		newThreadArgs->sd = accept( server_sd, (struct sockaddr*)&(newThreadArgs->ss), &client_sockaddr_len);
-
-		/* This is a cancellation point so the DlThread::Cancel can do its work. */
-		DlThread::Self()->TestCancel();
-
-		if( newThreadArgs->sd < 0)
+		if( sfd < 0)
 		{
 			AFERRPE("accept")
 			switch( errno )
@@ -198,7 +194,6 @@ void threadAcceptPort( void * i_arg, int i_port)
 
 			if( false == AFRunning )
 			{
-				delete threadArgs;
 				break;
 			}
 
@@ -211,16 +206,8 @@ void threadAcceptPort( void * i_arg, int i_port)
 
 		error_wait = error_wait_min;
 
-		/* Start a detached thread for this connection, the "t" object will be deleted
-		automagically (check dlThread.cpp for details) and there is no need to join
-		join this thread. */
-		DlThread *t = new DlThread();
-		t->SetDetached();
-
-		/* The 'process' function will decode the incoming request and dispatch
-		it to the proper queue. */
-		t->Start( threadProcessMsg, newThreadArgs );
-
+		// Add a new socket to process:
+		threadArgs->socketsProcessing->acceptSocket( sfd, sas);
 
 		//
 		// Server load statistics:
@@ -256,7 +243,7 @@ void threadAcceptPort( void * i_arg, int i_port)
 
 	close( server_sd);
 
-	printf("Thread Accept %d Finished.\n", i_port);
+	AF_LOG << "Accepting port thread finished.";
 }
 
 void threadAcceptClient( void * i_arg)

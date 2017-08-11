@@ -6,23 +6,27 @@
 #include "monitorhost.h"
 #include "watch.h"
 
-#include <QtGui/QIcon>
 #include <QApplication>
+#include <QtGui/QIcon>
 
 #define AFOUTPUT
 #undef AFOUTPUT
 #include "../include/macrooutput.h"
+#include "../libafanasy/logger.h"
+
+Dialog * ext_dialog = NULL;
 
 #ifndef WINNT
 //####################### interrupt signal handler ####################################
 #include <signal.h>
 void sig_pipe(int signum)
 {
-   AFERROR("afanasy:: SIGPIPE:")
+	AF_ERR << "SIGPIPE received.";
 }
 void sig_int(int signum)
 {
-   qApp->quit();
+	AF_WARN << "Interrupt signal received.";
+	ext_dialog->close();
 }
 //#####################################################################################
 #endif
@@ -52,30 +56,34 @@ int main(int argc, char *argv[])
 
    if( !ENV.isValid())
    {
-      AFERROR("main: Environment initialization failed.")
-      exit(1);
+		AF_ERR << "Environment initialization failed.";
+		exit(1);
    }
 
-   afqt::init( ENV.getWatchWaitForConnected(), ENV.getWatchWaitForReadyRead(), ENV.getWatchWaitForBytesWritten());
    afqt::QEnvironment QENV( "watch");
    if( !QENV.isValid())
    {
-      AFERROR("main: QEnvironment initialization failed.")
-      exit(1);
+		AF_ERR << "QEnvironment initialization failed.";
+		exit(1);
    }
 
    QApplication app(argc, argv);
    app.setWindowIcon( QIcon( afqt::stoq( ENV.getCGRULocation()) + "/icons/afwatch.png"));
+	#if QT_VERSION >= 0x050000
+	app.setStyle("fusion");
+	#else
 	app.setStyle("plastique");
+	#endif
 
 	MonitorHost monitor;
 
    Dialog dialog;
    if( !dialog.isInitialized())
    {
-      AFERROR("main: Dialog initialization failed.")
-      exit(1);
+		AF_ERR << "Main dialog initialization failed.";
+		exit(1);
    }
+	ext_dialog = &dialog;
 
    Watch watch( &dialog, &app);
 
@@ -84,10 +92,11 @@ int main(int argc, char *argv[])
 
    int status = app.exec();
 
+	Watch::destroy();
    af::destroy();
    Py_Finalize();
 
-   AFINFA("main: QApplication::exec: returned status = %d", status)
+	AF_LOG << "QApplication::exec: returned status = " << status;
 
    return status;
 }

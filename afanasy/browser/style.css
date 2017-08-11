@@ -43,10 +43,10 @@ left: 0; right: 0; bottom: 0; top: 200px;
 #headermain .mbutton {
 font: 16px Arial;
 font-weight: bold;
-position: relative;
-border: 1px solid #575757;
-border-radius: 6px;
-margin: 0px 10px;
+float: left;
+border: 2px solid #575757;
+border-radius: 2px 2px 16px 16px;
+margin: -8px 10px;
 padding: 6px 8px 3px 8px;
 cursor: pointer;
 text-transform: uppercase;
@@ -76,6 +76,15 @@ border: 2px solid #575757;
 #footeropenbutton, #headeropenbutton, #log_btn, #netlog_btn {
 cursor: pointer;
 text-align: center;
+}
+#header_panel_right {
+	float: right;
+	margin-right: 12px;
+}
+#header_panel_right > div {
+	margin: 2px;
+	padding: 4px 8px;
+	float: left;
 }
 #footeropenbutton, #headeropenbutton {
 border: 1px solid #575757;
@@ -207,7 +216,6 @@ height: 28px;
 .monitor .ctrl { top: 0; border-bottom: 2px solid #575757;}
 .monitor .info { bottom: 0; border-top: 2px solid #575757;}
 .monitor .list {
-font-weight: bold;
 position: absolute;
 left: 0; right: 0;
 overflow: auto;
@@ -313,6 +321,10 @@ cursor: default;
 .item.selected, .item.task.selected {
 background: #DFD;
 color: #000;
+}
+
+.lowercase {
+text-transform: lowercase;
 }
 
 .render .resources {
@@ -461,6 +473,7 @@ opacity: .3;
 
 /*.item.render .task {*/
 .rendertask {
+font-weight: bold;
 background: #DD5;
 margin: 1px;
 /*border: 1px solid #666;*/
@@ -503,6 +516,7 @@ color: #FF5;
 text-shadow: 0px 0px 2px #000;
 }
 .star .count {
+font-weight: bold;
 position: absolute;
 top: 0px; left: 10px; right: 0; bottom: 0;
 font-size: 18px;
@@ -597,3 +611,23 @@ padding: 0;
 margin-top: 0;
 padding-top: 0;
 }
+
+.ui_level_back {
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+text-align: center;
+background-color: rgba(50,50,50,.5);
+}
+.ui_level_text {
+margin: 128px;
+padding: 128px;
+font-weight: bolder;
+font-size: 32px;
+background-color: #AAAAAA;
+color: #303030;
+border: 8px solid #303030;
+border-radius: 24px;
+box-shadow: 0 0 32px #000000, 0 0 8px #000000 inset;
+text-shadow: 0px 0px 2px #FFFFFF;
+}
+

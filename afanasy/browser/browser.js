@@ -4,6 +4,7 @@ g_id = 0;
 g_uid = -1;
 g_uid_orig = -1;
 g_keysdown = '';
+g_closing = false;
 
 g_auth = {};
 g_digest = null;
@@ -30,6 +31,7 @@ function g_Init()
 {
 	g_Info('HTML body load.');
 	cgru_Init();
+	cm_Init();
 
 	window.onbeforeunload = g_OnClose;
 	document.body.onkeydown = g_OnKeyDown;
@@ -74,6 +76,11 @@ function g_ConfigReceived( i_obj)
 			g_Error('Invalid config recieved.');
 			return;
 		}
+
+		if( cgru_Config.docs_url )
+			$('docs_link').href = cgru_Config.docs_url + '/afanasy/gui#web';
+		if( cgru_Config.forum_url )
+			$('forum_link').href = cgru_Config.forum_url + '/viewforum.php?f=17';
 
 		var title = 'CGRU version: ' + cgru_Environment.version;
 		title += '\nBuild at: ' + cgru_Environment.builddate;
@@ -683,12 +690,14 @@ function g_Error( i_err, i_log)
 
 function g_OnClose()
 {
-	localStorage.main_monitor = g_main_monitor_type
-;
+	localStorage.main_monitor = g_main_monitor_type;
+
 	var operation = {};
 	operation.type = 'deregister';
 	if( g_id)
 		nw_Action('monitors', [g_id], operation);
+
+	g_closing = true;
 
 	g_CloseAllWindows();
 	g_CloseAllMonitors();

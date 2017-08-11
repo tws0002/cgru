@@ -54,9 +54,10 @@ public:
 	QString thumb_path;
 	QString report;
 	QString project;
+	QString department;
 	QMap<QString,QString> folders;
 
-	const QString getFirstFolder();
+	const QString getRulesFolder();
 
 	inline int getBlocksNum() const { return m_blocks_num;}
 	inline int getBlockPercent( int block ) const
