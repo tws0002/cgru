@@ -36,7 +36,7 @@ void ItemUser::updateValues( af::Node * i_node, int i_type)
 
 	hostname             = afqt::stoq( user->getHostName());
 	numjobs              = user->getNumJobs();
-	numrunningtasks      = user->getRunningTasksNumber();
+	numrunningtasks      = user->getRunningTasksNum();
 	maxrunningtasks      = user->getMaxRunningTasks();
 	hostsmask            = afqt::stoq( user->getHostsMask());
 	hostsmask_exclude    = afqt::stoq( user->getHostsMaskExclude());
@@ -72,10 +72,15 @@ void ItemUser::updateValues( af::Node * i_node, int i_type)
 		if( hostname.size())
 			strRightTop = QString("Latest Activity Host: %1").arg( hostname);
 
-		if( user->solveJobsParallel())
-			strRightBottom = "Parallel Jobs Solving";
+		if (user->isSolvePriority())
+			strRightBottom = "Solving: Priority";
 		else
-			strRightBottom = "Ordered Jobs Solving";
+			strRightBottom = "Solving: Ordered";
+
+		if (user->isSolveCapacity())
+			strRightBottom += ", Capacity";
+		else
+			strRightBottom += ", MaxTasks";
 	}
 	else if( Watch::isJedi())
 	{
@@ -96,10 +101,15 @@ void ItemUser::updateValues( af::Node * i_node, int i_type)
 		if( hostname.size())
 			strRightTop = QString("Host:%1").arg( hostname);
 
-		if( user->solveJobsParallel())
-			strRightBottom = "Parallel";
+		if (user->isSolvePriority())
+			strRightBottom = "Priority";
 		else
 			strRightBottom = "Ordered";
+
+		if (user->isSolveCapacity())
+			strRightBottom += " Capacity";
+		else
+			strRightBottom += " MaxTasks";
 	}
 	else
 	{
@@ -117,10 +127,16 @@ void ItemUser::updateValues( af::Node * i_node, int i_type)
 
 		strRightTop = hostname;
 
-		if( user->solveJobsParallel())
-			strRightBottom = "par";
+
+		if (user->isSolvePriority())
+			strRightBottom = "pri";
 		else
 			strRightBottom = "ord";
+
+		if (user->isSolveCapacity())
+			strRightBottom += " cap";
+		else
+			strRightBottom += " mt";
 	}
 
 	if( isLocked()) strLeftTop = "(LOCK) " + strLeftTop;

@@ -1,3 +1,18 @@
+/* ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''' *\
+ *        .NN.        _____ _____ _____  _    _                 This file is part of CGRU
+ *        hMMh       / ____/ ____|  __ \| |  | |       - The Free And Open Source CG Tools Pack.
+ *       sMMMMs     | |   | |  __| |__) | |  | |  CGRU is licensed under the terms of LGPLv3, see files
+ * <yMMMMMMMMMMMMMMy> |   | | |_ |  _  /| |  | |    COPYING and COPYING.lesser inside of this folder.
+ *   `+mMMMMMMMMNo` | |___| |__| | | \ \| |__| |          Project-Homepage: http://cgru.info
+ *     :MMMMMMMM:    \_____\_____|_|  \_\\____/        Sourcecode: https://github.com/CGRU/cgru
+ *     dMMMdmMMMd     A   F   A   N   A   S   Y
+ *    -Mmo.  -omM:                                           Copyright © by The CGRU team
+ *    '          '
+\* ....................................................................................................... */
+
+/*
+	name_af.h - Header for functions that are common for an entire project (afserver, afrender, afwatch, afcmd).
+*/
 #pragma once
 
 #include <algorithm>
@@ -154,7 +169,9 @@ namespace af
 
 	void printTime( time_t time_sec = time( NULL), const char * time_format = NULL);
 
-	void printAddress( struct sockaddr_storage * i_ss );
+	void sockAddrToStr( std::ostringstream & o_str, const struct sockaddr_storage * i_ss );
+	const std::string sockAddrToStr( const struct sockaddr_storage * i_ss );
+	void printAddress( const struct sockaddr_storage * i_ss );
 
 	bool setRegExp( RegExp & regexp, const std::string & str, const std::string & name, std::string * errOutput = NULL);
 
@@ -189,9 +206,11 @@ namespace af
 
 	bool pathIsFolder( const std::string & path);
 
-	const std::string pathAbsolute( const std::string & path);
+	const std::string pathCurrent();
 
-	const std::string pathUp( const std::string & path);
+	const std::string pathAbsolute(const std::string & i_path);
+
+	const std::string pathUp(const std::string & i_path, bool i_use_cwd = false);
 
 	const std::string pathHome();
 
@@ -254,11 +273,11 @@ namespace af
 	/** Return true if success.**/
 	bool msgwrite( int i_desc, const af::Msg * i_msg);
 
+	std::string msgMakeWriteHeader( const af::Msg * i_msg);
+	std::string getHttpHeader(int file_size, const std::string &mimeType, const std::string &status);
+
 	/// Send a message to all its addresses and receive an answer if needed
 	Msg * sendToServer( Msg * i_msg, bool & o_ok, VerboseMode i_verbose);
-
-	/// Close socket
-	void socketDisconnect( int i_sd, uint32_t i_response_type = -1);
 
 
 	// Python:

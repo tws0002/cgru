@@ -76,6 +76,7 @@
 			{"name":"hbatch"},
 			{"name":"hbatch_prman"},
 			{"name":"hbatch_mantra"},
+			{"name":"hbatch_redshift","count":1},
 			{"name":"houdinitoarnold"},
 			{"name":"htracker"},
 			{"name":"mantra"},
@@ -118,6 +119,12 @@
 		"wol_idlesleep_time": 3600,
 		"remservices":["afterfx","max","xsi"]
 
+	},{
+		"name":"Remote",
+		"mask":"remote.*|cloud.*",
+		"pool":"remote",
+		"maxtasks":1,
+		"register_nimby":1
 	},{
 
 		"name":"Server",

@@ -721,7 +721,7 @@ if __name__ == '__main__':
         if cmd is None:
             cmd = 'aerender' + cmdextension
         cmd += ' -project "%s"' % scene
-        cmd += ' -mp -s @#@ -e @#@ -i %d -mp' % by
+        cmd += ' -s @#@ -e @#@ -i %d' % by
 
         if node != '':
             cmd += ' -comp "%s"' % node
@@ -871,7 +871,7 @@ if __name__ == '__main__':
         block.setWorkingDirectory(pwd)
         block.setNumeric(s, e, fpt, by)
         if seq != 1:
-            block.setSequential( seq)
+            block.setSequential(seq)
 
         if scenetype == 'max':
             block.setCommand(cmd, False, False)

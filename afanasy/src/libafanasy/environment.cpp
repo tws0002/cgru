@@ -1,3 +1,18 @@
+/* ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''' *\
+ *        .NN.        _____ _____ _____  _    _                 This file is part of CGRU
+ *        hMMh       / ____/ ____|  __ \| |  | |       - The Free And Open Source CG Tools Pack.
+ *       sMMMMs     | |   | |  __| |__) | |  | |  CGRU is licensed under the terms of LGPLv3, see files
+ * <yMMMMMMMMMMMMMMy> |   | | |_ |  _  /| |  | |    COPYING and COPYING.lesser inside of this folder.
+ *   `+mMMMMMMMMNo` | |___| |__| | | \ \| |__| |          Project-Homepage: http://cgru.info
+ *     :MMMMMMMM:    \_____\_____|_|  \_\\____/        Sourcecode: https://github.com/CGRU/cgru
+ *     dMMMdmMMMd     A   F   A   N   A   S   Y
+ *    -Mmo.  -omM:                                           Copyright © by The CGRU team
+ *    '          '
+\* ....................................................................................................... */
+
+/*
+	Methods to get all environment on start, store all for a further queries.
+*/
 #include "environment.h"
 
 #ifdef WINNT
@@ -18,6 +33,7 @@
 #define AFOUTPUT
 #undef AFOUTPUT
 #include "../include/macrooutput.h"
+#include "logger.h"
 
 #define PRINT if(m_verbose_init)printf
 #define QUIET if(!m_quiet_init)printf
@@ -40,13 +56,6 @@ int     Environment::task_update_timeout =             AFJOB::TASK_UPDATE_TIMEOU
 int     Environment::task_stop_timeout =               AFJOB::TASK_STOP_TIMEOUT;
 int     Environment::task_log_linesmax =               AFJOB::TASK_LOG_LINESMAX;
 int     Environment::task_progress_change_timeout =    AFJOB::TASK_PROGRESS_CHANGE_TIMEOUT;
-
-/// Jobs solving options:
-bool    Environment::solving_use_capacity =            AFSERVER::SOLVING_USE_CAPACITY;
-bool    Environment::solving_use_user_priority =       AFSERVER::SOLVING_USE_USER_PRIORITY;
-bool    Environment::solving_simpler =                 AFSERVER::SOLVING_SIMPLER;
-int     Environment::solving_tasks_speed =             AFSERVER::SOLVING_TASKS_SPEED;
-int     Environment::solving_wake_per_cycle =          AFSERVER::SOLVING_WAKE_PER_CYCLE;
 
 int     Environment::serverport =                      AFADDR::SERVER_PORT;
 
@@ -94,12 +103,18 @@ std::string Environment::sysjob_wol_service =         AFJOB::SYSJOB_SERVICE;
 std::string Environment::sysjob_postcmd_service =     AFJOB::SYSJOB_SERVICE;
 std::string Environment::sysjob_events_service =      AFJOB::SYSJOB_EVENTS_SERVICE;
 
+int Environment::wolwake_interval =                   AFSERVER::WOLWAKE_INTERVAL;
+
 int Environment::afnode_log_lines_max =              AFGENERAL::LOG_LINES_MAX;
 
 int Environment::server_sockets_readwrite_threads_num    = AFSERVER::SOCKETS_READWRITE_THREADS_NUM;
 int Environment::server_sockets_readwrite_threads_stack  = AFSERVER::SOCKETS_READWRITE_THREADS_STACK;
 int Environment::server_sockets_processing_threads_num   = AFSERVER::SOCKETS_PROCESSING_THREADS_NUM;
 int Environment::server_sockets_processing_threads_stack = AFSERVER::SOCKETS_PROCESSING_THREADS_STACK;
+
+int Environment::server_linux_epoll      = AFSERVER::LINUX_EPOLL;
+int Environment::server_http_wait_close  = AFSERVER::HTTP_WAIT_CLOSE;
+int Environment::server_profiling_sec    = AFSERVER::PROFILING_SEC;
 
 /// Socket Options:
 int Environment::so_server_LINGER       = AFNETWORK::SO_SERVER_LINGER;
@@ -128,6 +143,7 @@ int Environment::db_stringnamelen =                AFDATABASE::STRINGNAMELEN;
 int Environment::db_stringexprlen =                AFDATABASE::STRINGEXPRLEN;
 
 std::string Environment::store_folder = AFGENERAL::STORE_FOLDER;
+std::string Environment::store_folder_branches;
 std::string Environment::store_folder_jobs;
 std::string Environment::store_folder_renders;
 std::string Environment::store_folder_users;
@@ -172,6 +188,7 @@ std::vector<std::string> Environment::cmdarguments;
 std::map<std::string,std::string> Environment::cmdarguments_usage;
 
 std::string Environment::version_revision;
+std::string Environment::version_compiled;
 std::string Environment::version_cgru;
 std::string Environment::version_python;
 std::string Environment::version_gcc;
@@ -224,6 +241,10 @@ void Environment::getVars( const JSON * i_obj)
 	getVar( i_obj, server_sockets_processing_threads_num,   "af_server_sockets_processing_threads_num"   );
 	getVar( i_obj, server_sockets_processing_threads_stack, "af_server_sockets_processing_threads_stack" );
 
+	getVar( i_obj, server_linux_epoll,                "af_server_linux_epoll"                );
+	getVar( i_obj, server_http_wait_close,            "af_server_http_wait_close"            );
+	getVar( i_obj, server_profiling_sec,              "af_server_profiling_sec"              );
+
 	/// Socket Options:
 	getVar( i_obj, so_server_LINGER,                  "af_so_server_LINGER"                  );
 	getVar( i_obj, so_server_REUSEADDR,               "af_so_server_REUSEADDR"               );
@@ -245,12 +266,6 @@ void Environment::getVars( const JSON * i_obj)
 	getVar( i_obj, task_stop_timeout,                 "af_task_stop_timeout"                 );
 	getVar( i_obj, task_log_linesmax,                 "af_task_log_linesmax"                 );
 	getVar( i_obj, task_progress_change_timeout,      "af_task_progress_change_timeout"      );
-
-	getVar( i_obj, solving_use_capacity,              "af_solving_use_capacity"              );
-	getVar( i_obj, solving_use_user_priority,         "af_solving_use_user_priority"         );
-	getVar( i_obj, solving_simpler,                   "af_solving_simpler"                   );
-	getVar( i_obj, solving_tasks_speed,               "af_solving_tasks_speed"               );
-	getVar( i_obj, solving_wake_per_cycle,            "af_solving_wake_per_cycle"            );
 
 	getVar( i_obj, render_heartbeat_sec,              "af_render_heartbeat_sec"              );
 	getVar( i_obj, render_up_resources_period,        "af_render_up_resources_period"        );
@@ -289,6 +304,8 @@ void Environment::getVars( const JSON * i_obj)
 	getVar( i_obj, sysjob_postcmd_service,            "af_sysjob_postcmd_service"            );
 	getVar( i_obj, sysjob_wol_service,                "af_sysjob_wol_service"                );
 	getVar( i_obj, sysjob_events_service,             "af_sysjob_events_service"             );
+
+	getVar( i_obj, wolwake_interval,                  "af_wolwake_interval"                  );
 }
 
 const std::string Environment::getVarEnv( const char * i_name)
@@ -409,8 +426,8 @@ Environment::Environment( uint32_t flags, int argc, char** argv )
 	{
 		 afroot = argv[0];
 		 afroot = af::pathAbsolute( afroot);
-		 afroot = af::pathUp( afroot);
-		 afroot = af::pathUp( afroot);
+		 afroot = af::pathUp(afroot, true);
+		 afroot = af::pathUp(afroot, true);
 		 QUIET("Setting Afanasy root to \"%s\"\n", afroot.c_str());
 	}
 	else
@@ -429,10 +446,10 @@ Environment::Environment( uint32_t flags, int argc, char** argv )
 	if( cgrulocation.size() == 0 )
 	{
 		 cgrulocation = afroot;
-		 cgrulocation = af::pathUp( cgrulocation);
+		 cgrulocation = af::pathUp(cgrulocation, true);
 		 std::string version_txt = cgrulocation + AFGENERAL::PATH_SEPARATOR + "version.txt";
 		 if( false == af::pathFileExists( version_txt))
-			   cgrulocation = af::pathUp( cgrulocation);
+			   cgrulocation = af::pathUp(cgrulocation, true);
 		 QUIET("Setting CRGU location to \"%s\"\n", cgrulocation.c_str());
 	}
 	else
@@ -571,6 +588,8 @@ Environment::Environment( uint32_t flags, int argc, char** argv )
 	PRINT("Platform: '%s'\n", af::strJoin( platform).c_str());
 //
 //############ Versions: ########################
+	#define STRINGIFY(x) #x
+	#define EXPAND(x) STRINGIFY(x)
 
 	// Date:
 	build_date = std::string(__DATE__) + " " __TIME__;
@@ -580,10 +599,12 @@ Environment::Environment( uint32_t flags, int argc, char** argv )
 	version_cgru = af::getenv("CGRU_VERSION");
 	QUIET("CGRU version = '%s'\n", version_cgru.c_str());
 
-	// Build Revision:
+	// Build-in version and revision:
+	version_compiled = EXPAND(CGRU_VERSION);
+	QUIET("Afanasy build version = '%s'\n", version_compiled.c_str());
+	if (version_cgru.find(version_compiled) == std::string::npos)
+		AF_ERR << "CGRU environment and Afanasy compiled versions mismatch.";
 	#ifdef CGRU_REVISION
-	#define STRINGIFY(x) #x
-	#define EXPAND(x) STRINGIFY(x)
 	version_revision = EXPAND(CGRU_REVISION);
 	QUIET("Afanasy build revision = '%s'\n", version_revision.c_str());
 	#endif
@@ -716,7 +737,7 @@ void Environment::loadFile( const std::string & i_filename)
 		{
 			std::string filename = include[i];
 			if( false == pathIsAbsolute( filename ))
-				filename = pathUp( i_filename) + AFGENERAL::PATH_SEPARATOR + filename;
+				filename = pathUp(i_filename, true) + AFGENERAL::PATH_SEPARATOR + filename;
 			loadFile( filename);
 		}
 	}
@@ -741,6 +762,7 @@ bool Environment::checkKey( const char key) { return passwd->checkKey( key, viso
 bool Environment::initAfterLoad()
 {
 	// Store folders:
+	store_folder_branches= store_folder + AFGENERAL::PATH_SEPARATOR + AFBRANCH::STORE_FOLDER;
 	store_folder_jobs    = store_folder + AFGENERAL::PATH_SEPARATOR +    AFJOB::STORE_FOLDER;
 	store_folder_renders = store_folder + AFGENERAL::PATH_SEPARATOR + AFRENDER::STORE_FOLDER;
 	store_folder_users   = store_folder + AFGENERAL::PATH_SEPARATOR +   AFUSER::STORE_FOLDER;

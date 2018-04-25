@@ -1,3 +1,18 @@
+/* ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''' *\
+ *        .NN.        _____ _____ _____  _    _                 This file is part of CGRU
+ *        hMMh       / ____/ ____|  __ \| |  | |       - The Free And Open Source CG Tools Pack.
+ *       sMMMMs     | |   | |  __| |__) | |  | |  CGRU is licensed under the terms of LGPLv3, see files
+ * <yMMMMMMMMMMMMMMy> |   | | |_ |  _  /| |  | |    COPYING and COPYING.lesser inside of this folder.
+ *   `+mMMMMMMMMNo` | |___| |__| | | \ \| |__| |          Project-Homepage: http://cgru.info
+ *     :MMMMMMMM:    \_____\_____|_|  \_\\____/        Sourcecode: https://github.com/CGRU/cgru
+ *     dMMMdmMMMd     A   F   A   N   A   S   Y
+ *    -Mmo.  -omM:                                           Copyright © by The CGRU team
+ *    '          '
+\* ....................................................................................................... */
+
+/*
+	Here is the main (run) thread function.
+*/
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -6,6 +21,7 @@
 
 #include "afcommon.h"
 #include "auth.h"
+#include "branchescontainer.h"
 #include "jobcontainer.h"
 #include "monitorcontainer.h"
 #include "rendercontainer.h"
@@ -34,7 +50,7 @@ void threadRunCycle( void * i_args)
 	ThreadArgs * a = (ThreadArgs*)i_args;
 
 	// Jobs solving class:
-	Solver solver( a->jobs, a->renders, a->users, a->monitors);
+	Solver solver(a->branches, a->jobs, a->renders, a->users, a->monitors);
 
 	// Save store to store start time:
 	AFCommon::saveStore();
@@ -57,7 +73,13 @@ void threadRunCycle( void * i_args)
 	//
 	// Lock containers:
 	//
+	/*
+		We should alaways lock containers in alphabetical order.
+		Thread mutex lock can happer it one thread tries to lock A than B,
+		and other thread tries to lock B at first, than A.
+	*/
 	AFINFO("ThreadRun::run: Locking containers...")
+	AfContainerLock bLock( a->branches, AfContainerLock::WRITELOCK);
 	AfContainerLock jLock( a->jobs,     AfContainerLock::WRITELOCK);
 	AfContainerLock lLock( a->renders,  AfContainerLock::WRITELOCK);
 	AfContainerLock mlock( a->monitors, AfContainerLock::WRITELOCK);
@@ -100,15 +122,27 @@ void threadRunCycle( void * i_args)
 	AFINFO("ThreadRun::run: Refreshing data:")
 	a->monitors ->refresh( NULL,        a->monitors);
 	a->jobs     ->refresh( a->renders,  a->monitors);
+	a->branches ->refresh( NULL,        a->monitors);
 	a->renders  ->refresh( a->jobs,     a->monitors);
 	a->users    ->refresh( NULL,        a->monitors);
 
 
 	//
-	// Jobs sloving:
+	// Jobs sloving.
 	//
+	// Perform pre solving calculations.
+	a->branches->preSolve(a->monitors);
+	a->jobs    ->preSolve(a->monitors);
+	a->users   ->preSolve(a->monitors);
+	//
+	// Sloving.
 	solver.solve();
-	
+	//
+	// Perform post solving calculations.
+	// Some data for guis needed to be refreshed after solving (after new tasks started).
+	a->branches->postSolve(a->monitors);
+	a->renders ->postSolve(a->monitors);
+
 	//
 	// Dispatch events to monitors:
 	//
@@ -122,6 +156,7 @@ void threadRunCycle( void * i_args)
 	a->monitors ->freeZombies();
 	a->renders  ->freeZombies();
 	a->jobs     ->freeZombies();
+	a->branches ->freeZombies();
 	a->users    ->freeZombies();
 
 	}// - lock containers
